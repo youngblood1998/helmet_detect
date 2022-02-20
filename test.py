@@ -56,36 +56,36 @@
 
 #--------------------------------------------------------------------------
 
-import cv2
-import numpy as np
-
-img = cv2.imread('data_color/matches/w1-1.bmp')
-cv2.normalize(img, img, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
-img = cv2.resize(img, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
-
-h, w, d = img.shape
-gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-edges = cv2.Canny(gray, 0, 255)
-
-# 200 代表应该检测到的行的最小长度
-lines = cv2.HoughLines(edges, 1, np.pi / 180, 60)
-
-for i in range(len(lines)):
- for rho, theta in lines[i]:
-  a = np.cos(theta)
-  b = np.sin(theta)
-  x0 = a * rho
-  y0 = b * rho
-  x1 = int(x0 + w * (-b))
-  y1 = int(y0 + w * (a))
-  x2 = int(x0 - w * (-b))
-  y2 = int(y0 - w * (a))
-
-  cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
-cv2.imshow("edges", edges)
-cv2.imshow("lines", img)
-cv2.waitKey()
-cv2.destroyAllWindows()
+# import cv2
+# import numpy as np
+#
+# img = cv2.imread('data_color/matches/w1-1.bmp')
+# cv2.normalize(img, img, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+# img = cv2.resize(img, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+#
+# h, w, d = img.shape
+# gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+# edges = cv2.Canny(gray, 0, 255)
+#
+# # 200 代表应该检测到的行的最小长度
+# lines = cv2.HoughLines(edges, 1, np.pi / 180, 60)
+#
+# for i in range(len(lines)):
+#  for rho, theta in lines[i]:
+#   a = np.cos(theta)
+#   b = np.sin(theta)
+#   x0 = a * rho
+#   y0 = b * rho
+#   x1 = int(x0 + w * (-b))
+#   y1 = int(y0 + w * (a))
+#   x2 = int(x0 - w * (-b))
+#   y2 = int(y0 - w * (a))
+#
+#   cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+# cv2.imshow("edges", edges)
+# cv2.imshow("lines", img)
+# cv2.waitKey()
+# cv2.destroyAllWindows()
 
 #-------------------------------------------------------
 
@@ -142,3 +142,201 @@ cv2.destroyAllWindows()
 #             print(str(S1) + "    " + str(S2)+"   "+str(ell[0][0])+"   "+str(ell[0][1]))
 # cv2.imshow("0",img)
 # cv2.waitKey(0)
+
+#-------------------------------------------------------------------------------------------------------
+
+# from ImageConvert import *
+# from MVSDK import *
+# from camera_lib import enumCameras, openCamera, closeCamera, setLineTriggerConf, setExposureTime
+# import time
+# import numpy
+# import cv2
+#
+# g_isStop=0
+#
+# def test_callback(frame, userInfo):
+#
+#     if (g_isStop == 1):
+#         return
+#
+#     nRet = frame.contents.valid(frame)
+#     if (nRet != 0):
+#         print("frame is invalid!")
+#         # 释放驱动图像缓存资源
+#         frame.contents.release(frame)
+#         return
+#
+#     print("BlockId = %d userInfo = %s" % (frame.contents.getBlockId(frame), c_char_p(userInfo).value))
+#
+#     imageParams = IMGCNV_SOpenParam()
+#     imageParams.dataSize = frame.contents.getImageSize(frame)
+#     imageParams.height = frame.contents.getImageHeight(frame)
+#     imageParams.width = frame.contents.getImageWidth(frame)
+#     imageParams.paddingX = frame.contents.getImagePaddingX(frame)
+#     imageParams.paddingY = frame.contents.getImagePaddingY(frame)
+#     imageParams.pixelForamt = frame.contents.getImagePixelFormat(frame)
+#
+#     # 将裸数据图像拷出
+#     imageBuff = frame.contents.getImage(frame)
+#     userBuff = c_buffer(b'\0', imageParams.dataSize)
+#     memmove(userBuff, c_char_p(imageBuff), imageParams.dataSize)
+#
+#     # 释放驱动图像缓存资源
+#     frame.contents.release(frame)
+#
+#     # 如果图像格式是 Mono8 直接使用
+#     if imageParams.pixelForamt == EPixelType.gvspPixelMono8:
+#         grayByteArray = bytearray(userBuff)
+#         cvImage = numpy.array(grayByteArray).reshape(imageParams.height, imageParams.width)
+#     else:
+#         # 转码 => BGR24
+#         rgbSize = c_int()
+#         rgbBuff = c_buffer(b'\0', imageParams.height * imageParams.width * 3)
+#
+#         nRet = IMGCNV_ConvertToBGR24(cast(userBuff, c_void_p), \
+#                                      byref(imageParams), \
+#                                      cast(rgbBuff, c_void_p), \
+#                                      byref(rgbSize))
+#
+#         colorByteArray = bytearray(rgbBuff)
+#         cvImage = numpy.array(colorByteArray).reshape(imageParams.height, imageParams.width, 3)
+#     cv2.imwrite("./image/image.bmp", cvImage)
+#
+# frameCallbackFuncEx = callbackFuncEx(test_callback)
+#
+# def demo():
+#     # 发现相机
+#     cameraCnt, cameraList = enumCameras()
+#     if cameraCnt is None:
+#         return -1
+#
+#     # 显示相机信息
+#     for index in range(0, cameraCnt):
+#         camera = cameraList[index]
+#         print("\nCamera Id = " + str(index))
+#         print("Key           = " + str(camera.getKey(camera)))
+#         print("vendor name   = " + str(camera.getVendorName(camera)))
+#         print("Model  name   = " + str(camera.getModelName(camera)))
+#         print("Serial number = " + str(camera.getSerialNumber(camera)))
+#
+#     camera = cameraList[0]
+#
+#     # 打开相机
+#     nRet = openCamera(camera)
+#     if (nRet != 0):
+#         print("openCamera fail.")
+#         return -1;
+#
+#     # 创建流对象
+#     streamSourceInfo = GENICAM_StreamSourceInfo()
+#     streamSourceInfo.channelId = 0
+#     streamSourceInfo.pCamera = pointer(camera)
+#
+#     streamSource = pointer(GENICAM_StreamSource())
+#     nRet = GENICAM_createStreamSource(pointer(streamSourceInfo), byref(streamSource))
+#     if (nRet != 0):
+#         print("create StreamSource fail!")
+#         return -1
+#
+#     # 注册拉流回调函数
+#     userInfo = b"jay"
+#     nRet = streamSource.contents.attachGrabbingEx(streamSource, frameCallbackFuncEx, userInfo)
+#     if (nRet != 0):
+#         print("attachGrabbingEx fail!")
+#         # 释放相关资源
+#         streamSource.contents.release(streamSource)
+#         return -1
+#
+#     # 设置曝光时间
+#     nRet = setExposureTime(camera, 200)
+#     if (nRet != 0):
+#         print("set ExposureTime fail")
+#         # 释放相关资源
+#         streamSource.contents.release(streamSource)
+#         return -1
+#
+#     # 设置外触发
+#     nRet = setLineTriggerConf(camera)
+#     if (nRet != 0):
+#         print("set LineTriggerConf fail!")
+#         # 释放相关资源
+#         streamSource.contents.release(streamSource)
+#         return -1
+#     else:
+#         print("set LineTriggerConf success!")
+#
+#     # 开始拉流
+#     nRet = streamSource.contents.startGrabbing(streamSource, c_ulonglong(0), \
+#                                                c_int(GENICAM_EGrabStrategy.grabStrartegySequential))
+#     if (nRet != 0):
+#         print("startGrabbing fail!")
+#         # 释放相关资源
+#         streamSource.contents.release(streamSource)
+#         return -1
+#
+#     # 自由拉流 x 秒
+#     time.sleep(60)
+#     global g_isStop
+#     g_isStop = 1
+#
+#     # 反注册回调函数
+#     nRet = streamSource.contents.detachGrabbingEx(streamSource, frameCallbackFuncEx, userInfo)
+#     if (nRet != 0):
+#         print("detachGrabbingEx fail!")
+#         # 释放相关资源
+#         streamSource.contents.release(streamSource)
+#         return -1
+#
+#     # 停止拉流
+#     nRet = streamSource.contents.stopGrabbing(streamSource)
+#     if (nRet != 0):
+#         print("stopGrabbing fail!")
+#         # 释放相关资源
+#         streamSource.contents.release(streamSource)
+#         return -1
+#
+#     # 关闭相机
+#     nRet = closeCamera(camera)
+#     if (nRet != 0):
+#         print("closeCamera fail")
+#         # 释放相关资源
+#         streamSource.contents.release(streamSource)
+#         return -1
+#
+#     # 释放相关资源
+#     streamSource.contents.release(streamSource)
+#
+#     return 0
+#
+#
+# if __name__ == "__main__":
+#
+#     nRet = demo()
+#     if nRet != 0:
+#         print("Some Error happend")
+#     print("--------- Demo end ---------")
+#     # 3s exit
+#     time.sleep(0.2)
+
+#------------------------------------------------------------------
+
+from detect_lib.sift_flann import SiftFlann
+import cv2
+import time
+
+
+if __name__ == '__main__':
+    pwd = "./data/templates/"
+    img_arr = ["b1", "b2", "g1", "o1", "o2", "w1"]
+    temp_arr = [pwd+img+".jpg" for img in img_arr]
+    start = time.time()
+    match = cv2.imread("./image/black.jfif")
+
+    sift = SiftFlann(min_match_count=5, resize_times=0.3)
+    result, angle = sift.match(temp_arr, match)
+    print(time.time()-start)
+    print(result, angle)
+
+#----------------------------------------------------------------
+# a = (1, 2, 3)
+# print(len(a))
