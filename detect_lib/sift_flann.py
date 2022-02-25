@@ -1,3 +1,4 @@
+import numpy
 import numpy as np
 import cv2
 from detect_lib.calculate_area import CalArea
@@ -24,6 +25,7 @@ class SiftFlann:
         cv2.normalize(im2, im2, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
         # 转换成黑白
         img1 = cv2.cvtColor(im1, cv2.COLOR_BGR2GRAY)
+        img2 = cv2.cvtColor(im2, cv2.COLOR_BGR2GRAY)
         if len(im2.shape) == 3:
             img2 = cv2.cvtColor(im2, cv2.COLOR_RGB2GRAY)
         else:
@@ -41,7 +43,7 @@ class SiftFlann:
         search_params = dict(checks=self.checks)    # or pass empty dictionary
         flann = cv2.FlannBasedMatcher(index_params, search_params)
 
-        if des2 == None:
+        if des2 is None:
             return 0, [], None
 
         # 执行匹配
@@ -108,6 +110,7 @@ class SiftFlann:
             # 计算匹配框的面积
             cal = CalArea()
             area2 = cal.get_point_area([dst[0][0], dst[1][0], dst[2][0], dst[3][0]])
+            print(dst, area2)
             # im2_width = abs(dst[0][0][1]-dst[2][0][0])
             # im2_height = abs(dst[0][0][1]-dst[2][0][1])
             # print(area1, area2)
