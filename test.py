@@ -338,10 +338,11 @@
 #     print(result, angle)
 
 #----------------------------------------------------------------
-# a = (1, 2, 3)
-# print(len(a))
+a = {'l': 1}
+for j in a:
+   print(type(j))
 
 #--------------------------------------------------------------
-from camera_lib import enumCameras
-
-print(enumCameras())
+# from camera_lib import enumCameras
+#
+# print(enumCameras())

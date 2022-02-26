@@ -25,7 +25,7 @@ class SiftFlann:
         cv2.normalize(im2, im2, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
         # 转换成黑白
         img1 = cv2.cvtColor(im1, cv2.COLOR_BGR2GRAY)
-        img2 = cv2.cvtColor(im2, cv2.COLOR_BGR2GRAY)
+        # img2 = cv2.cvtColor(im2, cv2.COLOR_BGR2GRAY)
         if len(im2.shape) == 3:
             img2 = cv2.cvtColor(im2, cv2.COLOR_RGB2GRAY)
         else:

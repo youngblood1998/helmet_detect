@@ -1,30 +1,26 @@
 # -*- coding: utf-8 -*-
 
 import sys
-
+import os
 import cv2
 import numpy
-from PyQt5.QtWidgets import QApplication, QWidget
+import gc
+import datetime
 
-from PyQt5.QtCore import  pyqtSlot,pyqtSignal,Qt
-
+from PyQt5.QtWidgets import QApplication, QWidget, QDialog
+from PyQt5.QtCore import  pyqtSlot,QSettings,pyqtSignal,Qt
 ##from PyQt5.QtWidgets import
-
 ##from PyQt5.QtGui import
-
 ##from PyQt5.QtSql import
-
 ##from PyQt5.QtMultimedia import
-
 ##from PyQt5.QtMultimediaWidgets import
 
 from ui_MainWidget import Ui_Form as Ui_Widget
+from myDialogSetParams import QmyDialogSetParams
 
 from camera_lib import enumCameras, openCamera, closeCamera
 from MVSDK import *
 from ImageConvert import *
-import gc
-import datetime
 
 
 class QmyWidget(QWidget):
@@ -33,6 +29,8 @@ class QmyWidget(QWidget):
       super().__init__(parent)  # 调用父类构造函数，创建窗体
       self.ui = Ui_Widget()  # 创建UI对象
       self.ui.setupUi(self)  # 构造UI界面
+
+      self.camera_flag = False
 
       # 将一部分按钮设置成非使能状态
       self.ui.btnLinkCamera.setEnabled(False)
@@ -44,11 +42,26 @@ class QmyWidget(QWidget):
 
       self.ui.btnMakeTemp.setEnabled(False)
 
+      self.default_params = {
+         'exposure_time': 10000,
+         'trigger_delay': 1000000,
+         'min_match_count': 10,
+         'resize_times': 0.3,
+         'max_matches': 500,
+         'trees': 5,
+         'checks': 50,
+         'k': 2,
+         'ratio': 0.9
+      }
+
+      if not os.path.exists('./config.ini'):
+         self.settings = QSettings("./config.ini", QSettings.IniFormat)
+         for param_name in self.default_params:
+            self.settings.setValue(param_name, self.default_params[param_name])
+
 
 ##  ==============自定义功能函数========================
    def do_testCamera(self):
-      self.ui.btnTestCamera.setEnabled(False)
-      self.ui.btnCloseCamera.setEnabled(False)
       # 通用属性设置:设置触发模式为off --根据属性类型，直接构造属性节点。如触发模式是 enumNode，构造enumNode节点
       # 自由拉流：TriggerMode 需为 off
       trigModeEnumNode = pointer(GENICAM_EnumNode())
@@ -227,7 +240,8 @@ class QmyWidget(QWidget):
          self.camera = cameraList[0]
 
          # 连接相机按钮设为使能
-         self.ui.btnLinkCamera.setEnabled(True)
+         if not self.camera_flag:
+            self.ui.btnLinkCamera.setEnabled(True)
 
 
    # 连接相机
@@ -260,14 +274,26 @@ class QmyWidget(QWidget):
             # self.ui.btnDetectCamera.setEnabled(False)
             self.ui.btnTestCamera.setEnabled(True)
             self.ui.btnCloseCamera.setEnabled(True)
+            self.ui.btnStartDetect.setEnabled(True)
+            self.ui.btnMakeTemp.setEnabled(True)
+
+            self.camera_flag = True
+
 
    # 测试相机
    @pyqtSlot()
    def on_btnTestCamera_clicked(self):
+      self.ui.btnTestCamera.setEnabled(False)
+      self.ui.btnCloseCamera.setEnabled(False)
+      self.ui.btnStartDetect.setEnabled(False)
+      self.ui.btnMakeTemp.setEnabled(False)
+
       self.do_testCamera()
 
       self.ui.btnTestCamera.setEnabled(True)
       self.ui.btnCloseCamera.setEnabled(True)
+      self.ui.btnStartDetect.setEnabled(True)
+      self.ui.btnMakeTemp.setEnabled(True)
 
 
    # 关闭相机
@@ -299,21 +325,44 @@ class QmyWidget(QWidget):
       self.ui.btnCloseCamera.setEnabled(False)
       self.ui.btnTestCamera.setEnabled(False)
       self.ui.btnLinkCamera.setEnabled(True)
+      self.camera_flag = False
 
    # 开始检测
    @pyqtSlot()
    def on_btnStartDetect_clicked(self):
-      print("开始检测")
+      self.ui.btnStartDetect.setEnabled(False)
+      self.ui.btnStopDetect.setEnabled(True)
+      self.ui.btnSetParams.setEnabled(False)
+      self.ui.btnSelectTemp.setEnabled(False)
+      self.ui.btnMakeTemp.setEnabled(False)
+      self.ui.btnTestCamera.setEnabled(False)
 
    # 停止检测
    @pyqtSlot()
    def on_btnStopDetect_clicked(self):
-      print("停止检测")
+      if self.camera_flag:
+         self.ui.btnStartDetect.setEnabled(True)
+         self.ui.btnMakeTemp.setEnabled(True)
+         self.ui.btnTestCamera.setEnabled(True)
+      self.ui.btnStopDetect.setEnabled(False)
+      self.ui.btnSetParams.setEnabled(True)
+      self.ui.btnSelectTemp.setEnabled(True)
+
 
    # 设置参数
    @pyqtSlot()
    def on_btnSetParams_clicked(self):
-      print("设置参数")
+      dialogSetParams = QmyDialogSetParams()
+      dialogSetParams.set_default_params(self.default_params)
+      dialogSetParams.set_init_params()
+      ret = dialogSetParams.exec()
+
+      if ret:
+         new_params = dialogSetParams.get_new_params()
+         self.settings = QSettings("./config.ini", QSettings.IniFormat)
+         for param_name in new_params:
+            self.settings.setValue(param_name, new_params[param_name])
+
 
    # 选择模板
    @pyqtSlot()

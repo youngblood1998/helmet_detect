@@ -25,6 +25,13 @@
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>
        <widget class="QGroupBox" name="grpCamera">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
         <property name="title">
          <string>相机</string>
         </property>
@@ -34,6 +41,13 @@
          </property>
          <item row="0" column="1">
           <widget class="QLabel" name="labDetectCamera">
+           <property name="font">
+            <font>
+             <pointsize>9</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
            <property name="text">
             <string>无</string>
            </property>
@@ -41,6 +55,13 @@
          </item>
          <item row="2" column="1">
           <widget class="QLabel" name="labLinkCamera">
+           <property name="font">
+            <font>
+             <pointsize>9</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
            <property name="text">
             <string>未连接</string>
            </property>
@@ -53,6 +74,13 @@
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
+           </property>
+           <property name="font">
+            <font>
+             <pointsize>20</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
            </property>
            <property name="text">
             <string>连接相机</string>
@@ -67,6 +95,13 @@
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
+           <property name="font">
+            <font>
+             <pointsize>20</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
            <property name="text">
             <string>检测相机</string>
            </property>
@@ -80,6 +115,13 @@
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
+           <property name="font">
+            <font>
+             <pointsize>20</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
            <property name="text">
             <string>测试相机</string>
            </property>
@@ -87,6 +129,13 @@
          </item>
          <item row="4" column="1">
           <widget class="QLabel" name="label">
+           <property name="font">
+            <font>
+             <pointsize>9</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
            <property name="text">
             <string>未开始测试</string>
            </property>
@@ -100,6 +149,13 @@
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
+           <property name="font">
+            <font>
+             <pointsize>20</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
            <property name="text">
             <string>关闭相机</string>
            </property>
@@ -107,6 +163,13 @@
          </item>
          <item row="5" column="1">
           <widget class="QLabel" name="labCloseCamera">
+           <property name="font">
+            <font>
+             <pointsize>9</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
            <property name="text">
             <string>无</string>
            </property>
@@ -126,6 +189,13 @@
         <layout class="QHBoxLayout" name="horizontalLayout_2">
          <item>
           <widget class="QGroupBox" name="grpDetect">
+           <property name="font">
+            <font>
+             <pointsize>12</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
            <property name="title">
             <string>检测</string>
            </property>
@@ -137,6 +207,13 @@
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>20</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
               </property>
               <property name="text">
                <string>开始检测</string>
@@ -151,6 +228,13 @@
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
+              <property name="font">
+               <font>
+                <pointsize>20</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
               <property name="text">
                <string>停止检测</string>
               </property>
@@ -164,6 +248,13 @@
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
+              <property name="font">
+               <font>
+                <pointsize>20</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
               <property name="text">
                <string>设置参数</string>
               </property>
@@ -174,6 +265,13 @@
          </item>
          <item>
           <widget class="QGroupBox" name="grpTemp">
+           <property name="font">
+            <font>
+             <pointsize>12</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
            <property name="title">
             <string>模板</string>
            </property>
@@ -185,6 +283,13 @@
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>20</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
               </property>
               <property name="text">
                <string>选择模板</string>
@@ -198,6 +303,13 @@
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>20</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
               </property>
               <property name="text">
                <string>拍摄模板</string>
@@ -224,6 +336,13 @@
      <layout class="QVBoxLayout" name="verticalLayout_8" stretch="0,0">
       <item>
        <widget class="QGroupBox" name="grpInput">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
         <property name="title">
          <string>输入图片</string>
         </property>
@@ -244,6 +363,13 @@
       </item>
       <item>
        <widget class="QGroupBox" name="grpOuput">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
         <property name="title">
          <string>匹配结果</string>
         </property>

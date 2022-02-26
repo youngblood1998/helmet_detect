@@ -119,8 +119,18 @@ def demo():
         streamSource.contents.release(streamSource)
         return -1
 
+    # # 设置触发延迟时间
+    # nRet = setTriggerDelay(camera, 1000000)
+    # if (nRet != 0):
+    #     print("set setTriggerDelay fail!")
+    #     # 释放相关资源
+    #     streamSource.contents.release(streamSource)
+    #     return -1
+    # else:
+    #     print("set setTriggerDelay success!")
+
     # 设置外触发
-    nRet = setLineTriggerConf(camera)
+    nRet = setLineTriggerConf(camera, 1000000)
     if (nRet != 0):
         print("set LineTriggerConf fail!")
         # 释放相关资源

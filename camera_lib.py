@@ -189,7 +189,7 @@ def setSoftTriggerConf(camera):
     return 0     
 
 # 设置外触发
-def setLineTriggerConf(camera):
+def setLineTriggerConf(camera, dVal):
     # 创建control节点
     acqCtrlInfo = GENICAM_AcquisitionControlInfo()
     acqCtrlInfo.pCamera = pointer(camera)
@@ -198,7 +198,7 @@ def setLineTriggerConf(camera):
     if ( nRet != 0 ):
         print("create AcquisitionControl fail!")
         return -1
-    
+
     # 设置触发源为软触发
     trigSourceEnumNode = acqCtrl.contents.triggerSource(acqCtrl)
     nRet = trigSourceEnumNode.setValueBySymbol(byref(trigSourceEnumNode), b"Line1")
@@ -250,8 +250,22 @@ def setLineTriggerConf(camera):
     
     # 需要释放Node资源    
     trigActivationEnumNode.release(byref(trigActivationEnumNode))
+
+    # 设置触发延迟
+    trigDelayEnumNode = acqCtrl.contents.triggerDelay(acqCtrl)
+    nRet = trigDelayEnumNode.setValue(byref(trigDelayEnumNode), c_double(dVal))
+    if (nRet != 0):
+        print("set TriggerDelay value [RisingEdge] fail!")
+        # 释放相关资源
+        trigDelayEnumNode.release(byref(trigDelayEnumNode))
+        acqCtrl.contents.release(acqCtrl)
+        return -1
+
+    # 需要释放Node资源
+    trigDelayEnumNode.release(byref(trigDelayEnumNode))
+
     acqCtrl.contents.release(acqCtrl)
-    return 0 
+    return 0
 
 # 打开相机
 def openCamera(camera):
@@ -312,7 +326,33 @@ def setExposureTime(camera, dVal):
     # 释放节点资源     
     exposureTimeNode.contents.release(exposureTimeNode)    
     return 0
-    
+
+# # 设置触发延迟时间
+# def setTriggerDelay(camera, dVal):
+#     # 通用属性设置:设置延迟 --根据属性类型，直接构造属性节点。如延迟是 double类型，构造doubleNode节点
+#     triggerDelayNode = pointer(GENICAM_DoubleNode())
+#     triggerDelayNodeInfo = GENICAM_DoubleNodeInfo()
+#     triggerDelayNodeInfo.pCamera = pointer(camera)
+#     triggerDelayNodeInfo.attrName = b"TriggerDelay"
+#     nRet = GENICAM_createDoubleNode(byref(triggerDelayNodeInfo), byref(triggerDelayNode))
+#     if (nRet != 0):
+#         print("create triggerDelay Node fail!")
+#         return -1
+#
+#     # 设置延迟时间
+#     nRet = triggerDelayNode.contents.setValue(triggerDelayNode, c_double(dVal))
+#     if (nRet != 0):
+#         print("set triggerDelay value [%f]us fail!" % (dVal))
+#         # 释放相关资源
+#         triggerDelayNode.contents.release(triggerDelayNode)
+#         return -1
+#     else:
+#         print("set triggerDelay value [%f]us success." % (dVal))
+#
+#     # 释放节点资源
+#     triggerDelayNode.contents.release(triggerDelayNode)
+#     return 0
+
 # 枚举相机
 def enumCameras():
     # 获取系统单例
@@ -358,7 +398,7 @@ def grabOne(camera):
         # 释放相关资源
         streamSource.contents.release(streamSource)  
         return -1
-        
+
     # 执行一次软触发
     trigSoftwareCmdNode = acqCtrl.contents.triggerSoftware(acqCtrl)
     nRet = trigSoftwareCmdNode.execute(byref(trigSoftwareCmdNode))
@@ -553,7 +593,7 @@ def demo():
         # 释放相关资源
         streamSource.contents.release(streamSource)
         return -1
-
+    trigModeEnumNode.contents
     nRet = trigModeEnumNode.contents.setValueBySymbol(trigModeEnumNode, b"Off")
     if ( nRet != 0 ):
         print("set TriggerMode value [Off] fail!")
