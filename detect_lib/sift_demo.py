@@ -8,8 +8,8 @@ start = time.time()
 MIN_MATCH_COUNT = 10
 
 # 读取图片并转换成黑白图
-im1 = cv2.imread('./data_color/templates/o1.bmp', cv2.IMREAD_COLOR)  # trainImage
-im2 = cv2.imread('./data_color/matches/o1-1.bmp', cv2.IMREAD_COLOR)  # queryImage
+im1 = cv2.imread('../data_color/templates/o1.bmp', cv2.IMREAD_COLOR)  # trainImage
+im2 = cv2.imread('../data_color/matches/o1-1.bmp', cv2.IMREAD_COLOR)  # queryImage
 im1 = cv2.resize(im1, dsize=None, fx=0.3, fy=0.3, interpolation=cv2.INTER_LINEAR)
 im2 = cv2.resize(im2, dsize=None, fx=0.3, fy=0.3, interpolation=cv2.INTER_LINEAR)
 # 直方图归一化，应对白色的头盔

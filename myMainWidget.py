@@ -6,8 +6,9 @@ import cv2
 import numpy
 import gc
 import datetime
+import copy
 
-from PyQt5.QtWidgets import QApplication, QWidget, QDialog
+from PyQt5.QtWidgets import QApplication, QWidget, QDialog, QMessageBox
 from PyQt5.QtCore import  pyqtSlot,QSettings,pyqtSignal,Qt
 ##from PyQt5.QtWidgets import
 ##from PyQt5.QtGui import
@@ -17,8 +18,9 @@ from PyQt5.QtCore import  pyqtSlot,QSettings,pyqtSignal,Qt
 
 from ui_MainWidget import Ui_Form as Ui_Widget
 from myDialogSetParams import QmyDialogSetParams
+from myDialogMakeTemp import QmyDialogMakeTemp
 
-from camera_lib import enumCameras, openCamera, closeCamera
+from camera_lib import enumCameras, openCamera, closeCamera, setSoftTriggerConf, setExposureTime, grabOne
 from MVSDK import *
 from ImageConvert import *
 
@@ -58,6 +60,7 @@ class QmyWidget(QWidget):
          self.settings = QSettings("./config.ini", QSettings.IniFormat)
          for param_name in self.default_params:
             self.settings.setValue(param_name, self.default_params[param_name])
+      self.settings = QSettings("./config.ini", QSettings.IniFormat)
 
 
 ##  ==============自定义功能函数========================
@@ -72,7 +75,7 @@ class QmyWidget(QWidget):
       if (nRet != 0):
          print("create TriggerMode Node fail!")
          # 释放相关资源
-         self.streamSource.contents.release(self.streamSource)
+         # self.streamSource.contents.release(self.streamSource)
 
          label = self.ui.label
          label.setStyleSheet('color: red')
@@ -85,7 +88,7 @@ class QmyWidget(QWidget):
          print("set TriggerMode value [Off] fail!")
          # 释放相关资源
          trigModeEnumNode.contents.release(trigModeEnumNode)
-         self.streamSource.contents.release(self.streamSource)
+         # self.streamSource.contents.release(self.streamSource)
 
          label = self.ui.label
          label.setStyleSheet('color: red')
@@ -102,7 +105,7 @@ class QmyWidget(QWidget):
       if (nRet != 0):
          print("startGrabbing fail!")
          # 释放相关资源
-         self.streamSource.contents.release(self.streamSource)
+         # self.streamSource.contents.release(self.streamSource)
 
          label = self.ui.label
          label.setStyleSheet('color: red')
@@ -119,7 +122,7 @@ class QmyWidget(QWidget):
          if (nRet != 0):
             print("getFrame fail! Timeout:[1000]ms")
             # 释放相关资源
-            self.streamSource.contents.release(self.streamSource)
+            # self.streamSource.contents.release(self.streamSource)
 
             label = self.ui.label
             label.setStyleSheet('color: red')
@@ -136,7 +139,7 @@ class QmyWidget(QWidget):
             # 释放驱动图像缓存资源
             frame.contents.release(frame)
             # 释放相关资源
-            self.streamSource.contents.release(self.streamSource)
+            # self.streamSource.contents.release(self.streamSource)
 
             label = self.ui.label
             label.setStyleSheet('color: red')
@@ -208,6 +211,116 @@ class QmyWidget(QWidget):
          # 释放相关资源
          self.streamSource.contents.release(self.streamSource)
          return
+
+
+   def do_grabOne(self):
+      nRet = setSoftTriggerConf(self.camera)
+      if ( nRet != 0 ):
+         return None
+
+      exposure_time = self.settings.value('exposure_time')
+      nRet = setExposureTime(self.camera, int(exposure_time))
+      if ( nRet != 0 ):
+         return None
+
+      # 开始拉流
+      nRet = self.streamSource.contents.startGrabbing(self.streamSource, c_ulonglong(0), \
+                                                 c_int(GENICAM_EGrabStrategy.grabStrartegySequential))
+      if (nRet != 0):
+         return None
+
+      nRet = grabOne(self.camera)
+      if ( nRet != 0 ):
+         return None
+
+      # 主动取图
+      frame = pointer(GENICAM_Frame())
+      nRet = self.streamSource.contents.getFrame(self.streamSource, byref(frame), c_uint(10000))
+      if (nRet != 0):
+         return None
+      else:
+         print("SoftTrigger getFrame success BlockId = " + str(frame.contents.getBlockId(frame)))
+         print("get frame time: " + str(datetime.datetime.now()))
+
+      nRet = frame.contents.valid(frame)
+      if (nRet != 0):
+         return None
+
+         # 将裸数据图像拷出
+      imageSize = frame.contents.getImageSize(frame)
+      buffAddr = frame.contents.getImage(frame)
+      frameBuff = c_buffer(b'\0', imageSize)
+      memmove(frameBuff, c_char_p(buffAddr), imageSize)
+
+      # 给转码所需的参数赋值
+      convertParams = IMGCNV_SOpenParam()
+      convertParams.dataSize = imageSize
+      convertParams.height = frame.contents.getImageHeight(frame)
+      convertParams.width = frame.contents.getImageWidth(frame)
+      convertParams.paddingX = frame.contents.getImagePaddingX(frame)
+      convertParams.paddingY = frame.contents.getImagePaddingY(frame)
+      convertParams.pixelForamt = frame.contents.getImagePixelFormat(frame)
+
+      # 释放驱动图像缓存
+      frame.contents.release(frame)
+
+      # 如果图像格式是 Mono8 直接使用
+      if convertParams.pixelForamt == EPixelType.gvspPixelMono8:
+         grayByteArray = bytearray(frameBuff)
+         cvImage = numpy.array(grayByteArray).reshape(convertParams.height, convertParams.width)
+      else:
+         # 转码 => BGR24
+         rgbSize = c_int()
+         rgbBuff = c_buffer(b'\0', convertParams.height * convertParams.width * 3)
+
+         nRet = IMGCNV_ConvertToBGR24(cast(frameBuff, c_void_p), \
+                                      byref(convertParams), \
+                                      cast(rgbBuff, c_void_p), \
+                                      byref(rgbSize))
+
+         colorByteArray = bytearray(rgbBuff)
+         cvImage = numpy.array(colorByteArray).reshape(convertParams.height, convertParams.width, 3)
+
+      nRet = self.streamSource.contents.stopGrabbing(self.streamSource)
+      if (nRet != 0):
+         return None
+
+      return cvImage
+
+
+   def do_selectROI(self, image):
+      dsize = 0.25
+      rImage = cv2.resize(image, dsize=None, fx=dsize, fy=dsize, interpolation=cv2.INTER_LINEAR)
+      min_x, min_y, w, h = cv2.selectROI('select_roi', rImage)
+      if len(rImage.shape) == 3:
+         nImage = image[int(min_y/dsize):int((min_y+h)/dsize), int(min_x/dsize):int((min_x+w)/dsize), :]
+      else:
+         nImage = image[int(min_y/dsize):int((min_y+h)/dsize), int(min_x/dsize):int((min_x+w)/dsize)]
+      cv2.destroyAllWindows()
+
+      return nImage
+
+
+   def do_createDes(self, im1):
+      des_dic = {}
+      for i in range(1, 11):
+         di = i * 0.1
+         img1 = cv2.resize(im1, dsize=None, fx=di, fy=di, interpolation=cv2.INTER_LINEAR)
+         # 直方图归一化，应对白色的头盔
+         cv2.normalize(img1, img1, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+         if len(img1.shape) == 3:
+            img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+
+         # 初始化SIFT特征检测器
+         sift = cv2.SIFT_create()
+
+         # 使用特征检测器找特征点和描述子
+         kp1, des1 = sift.detectAndCompute(img1, None)
+
+         name = "descriptor(resize %.1f)"%(i*0.1)
+         des_dic[name] = copy.deepcopy(des1)
+
+      return des_dic
 
 
 ##  ==============event处理函数==========================
@@ -303,7 +416,7 @@ class QmyWidget(QWidget):
       if (nRet != 0):
          print("closeCamera fail")
          # 释放相关资源
-         self.streamSource.contents.release(self.streamSource)
+         # self.streamSource.contents.release(self.streamSource)
 
          lab = self.ui.labCloseCamera
          lab.setStyleSheet('color: red')
@@ -325,6 +438,8 @@ class QmyWidget(QWidget):
       self.ui.btnCloseCamera.setEnabled(False)
       self.ui.btnTestCamera.setEnabled(False)
       self.ui.btnLinkCamera.setEnabled(True)
+      self.ui.btnMakeTemp.setEnabled(False)
+      self.ui.btnStartDetect.setEnabled(False)
       self.camera_flag = False
 
    # 开始检测
@@ -372,7 +487,29 @@ class QmyWidget(QWidget):
    # 拍摄模板
    @pyqtSlot()
    def on_btnMakeTemp_clicked(self):
-      print("拍摄模板")
+      self.ui.btnTestCamera.setEnabled(False)
+      self.ui.btnMakeTemp.setEnabled(False)
+      self.ui.btnStartDetect.setEnabled(False)
+
+      image = self.do_grabOne()
+      if image is None:
+         messageBox = QMessageBox(QMessageBox.Warning, "warning", "请重试")
+         messageBox.exec()
+
+      nImage = self.do_selectROI(image)
+      if len(nImage) != 0:
+         des_dic = self.do_createDes(nImage)
+
+         dialogMakeTemp = QmyDialogMakeTemp()
+         dialogMakeTemp.get_image(nImage)
+         dialogMakeTemp.show_image()
+         ret = dialogMakeTemp.exec()
+
+
+      if self.camera_flag:
+         self.ui.btnTestCamera.setEnabled(True)
+         self.ui.btnMakeTemp.setEnabled(True)
+         self.ui.btnStartDetect.setEnabled(True)
 
 ##  =============自定义槽函数===============================
 

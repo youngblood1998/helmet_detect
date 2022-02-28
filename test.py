@@ -338,11 +338,39 @@
 #     print(result, angle)
 
 #----------------------------------------------------------------
-a = {'l': 1}
-for j in a:
-   print(type(j))
+# a = {'l': 1}
+# for j in a:
+#    print(type(j))
 
 #--------------------------------------------------------------
 # from camera_lib import enumCameras
 #
 # print(enumCameras())
+
+#---------------------------------------------------------------
+import numpy as np
+import cv2
+import time
+
+# 读取图片并转换成黑白图
+im1 = cv2.imread('./data_color/templates/o1.bmp', cv2.IMREAD_COLOR)  # trainImage
+print(im1.shape)
+
+
+start = time.time()
+for i in range(1, 11):
+   di = i*0.1
+   img1 = cv2.resize(im1, dsize=None, fx=di, fy=di, interpolation=cv2.INTER_LINEAR)
+   # 直方图归一化，应对白色的头盔
+   cv2.normalize(img1, img1, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+   img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+
+   # 初始化SIFT特征检测器
+   sift = cv2.SIFT_create(500)
+
+   # 使用特征检测器找特征点和描述子
+   kp1, des1 = sift.detectAndCompute(img1, None)
+   print(type(kp1[1]), type(des1))
+   print(kp1, des1)
+   print('--'*20)
+print(time.time()-start)
