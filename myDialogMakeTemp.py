@@ -28,7 +28,6 @@ class QmyDialogMakeTemp(QDialog):
       self.ui = Ui_Dialog()  # 创建UI对象
       self.ui.setupUi(self)  # 构造UI界面
 
-
 ##  ============自定义功能函数========================
    def get_image(self, image):
       self.image = image
@@ -38,15 +37,10 @@ class QmyDialogMakeTemp(QDialog):
       # image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
       print(image.shape)
 
-      w = image.shape[1]
-      h = image.shape[0]
-      W = self.ui.labTemp.size().width()
-      H = self.ui.labTemp.size().height()
-
-      if float(H)/h > float(W)/w:
-         image = cv2.resize(image, dsize=None, fx=float(W)/w, fy=float(W)/w)
-      else:
-         image = cv2.resize(image, dsize=None, fx=float(H)/h, fy=float(H)/h)
+      # if float(H)/h > float(W)/w:
+      #    image = cv2.resize(image, dsize=None, fx=float(W)/w, fy=float(W)/w)
+      # else:
+      #    image = cv2.resize(image, dsize=None, fx=float(H)/h, fy=float(H)/h)
 
       if len(image.shape) == 3:
          image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -58,8 +52,16 @@ class QmyDialogMakeTemp(QDialog):
                               image.shape[0],
                               image.shape[1]*3,
                               QtGui.QImage.Format.Format_RGB888)
-      self.ui.labTemp.setPixmap(QtGui.QPixmap.fromImage(qt_image))
 
+      w = image.shape[1]
+      h = image.shape[0]
+      W = self.ui.labTemp.size().width()
+      H = self.ui.labTemp.size().height()
+
+      if float(H)/h > float(W)/w:
+         self.ui.labTemp.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToWidth(W))
+      else:
+         self.ui.labTemp.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
 
 
 ##  ===========event处理函数==========================

@@ -348,29 +348,161 @@
 # print(enumCameras())
 
 #---------------------------------------------------------------
-import numpy as np
+# import numpy as np
+# import cv2
+# import time
+#
+# # 读取图片并转换成黑白图
+# im1 = cv2.imread('./data_color/templates/o1.bmp', cv2.IMREAD_COLOR)  # trainImage
+# print(im1.shape)
+#
+#
+# start = time.time()
+# for i in range(1, 11):
+#    di = i*0.1
+#    img1 = cv2.resize(im1, dsize=None, fx=di, fy=di, interpolation=cv2.INTER_LINEAR)
+#    # 直方图归一化，应对白色的头盔
+#    cv2.normalize(img1, img1, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+#    img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+#
+#    # 初始化SIFT特征检测器
+#    sift = cv2.SIFT_create(500)
+#
+#    # 使用特征检测器找特征点和描述子
+#    kp1, des1 = sift.detectAndCompute(img1, None)
+#    # print(type(kp1[1]), type(des1))
+#    # print(kp1, des1.shape)
+#    # print('--'*20)
+#
+#    # print(des1)
+#    # print(type(des1[1][1]))
+#    str1 = des1.tobytes()
+#    print(type(str1))
+#    des2 = np.frombuffer(str1, dtype=np.float32)
+#    des2 = np.reshape(des2, (-1, 128))
+#    # print(des2)
+#    # print('--'*20)
+# print(time.time()-start)
+
+#--------------------------------------------------------------
+
+# import numpy as np
+# import datetime
+# import cv2
+# import time
+# from PyQt5.QtSql import QSqlDatabase, QSqlQuery
+#
+# db = QSqlDatabase.addDatabase("QSQLITE")
+# db.setDatabaseName('./helmetDB.db3')
+# db.open()
+#
+# # 读取图片并转换成黑白图
+# im1 = cv2.imread('./data_color/templates/o1.bmp', cv2.IMREAD_COLOR)  # trainImage
+#
+# di = 0.1
+# img1 = cv2.resize(im1, dsize=None, fx=di, fy=di, interpolation=cv2.INTER_LINEAR)
+# # 直方图归一化，应对白色的头盔
+# cv2.normalize(img1, img1, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+# img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+#
+# # 初始化SIFT特征检测器
+# sift = cv2.SIFT_create(500)
+#
+# # 使用特征检测器找特征点和描述子
+# kp1, des1 = sift.detectAndCompute(img1, None)
+# # print(type(kp1[1]), type(des1))
+# # print(kp1, des1.shape)
+# # print('--'*20)
+#
+# # print(des1)
+# # print(type(des1[1][1]))
+# # str1 = des1.tobytes()
+# # print(type(str1))
+# # des2 = np.frombuffer(str1, dtype=np.float32)
+# # des2 = np.reshape(des2, (-1, 128))
+#
+# im2 = im1.tobytes()
+# str1 = des1.tobytes()
+#
+# query = QSqlQuery()
+# insert_sql = 'insert into helmet values (?,?,?,?,?,?,?,?)'
+# query.prepare(insert_sql)
+# query.addBindValue('TSA52')
+# query.addBindValue("绿")
+# query.addBindValue('M')
+# query.addBindValue(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+# query.addBindValue(im2)
+# query.addBindValue(im1.shape[1])
+# query.addBindValue(im1.shape[0])
+# query.addBindValue(str1)
+# query.exec_()
+#
+# db.close()
+
+#-------------------------------------------
+# import datetime
+#
+# print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+#-----------------------------------------------------
+# import numpy as np
+# import datetime
+# import cv2
+# import time
+# from PyQt5.QtSql import QSqlDatabase, QSqlQuery
+# import sqlite3
+#
+#
+# # 读取图片并转换成黑白图
+# im1 = cv2.imread('./data_color/templates/o1.bmp', cv2.IMREAD_COLOR)  # trainImage
+#
+# conn = sqlite3.connect('helmetDB.db3')
+# cursor = conn.cursor()
+#
+# sql = 'INSERT into helmet values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+#
+# x = ['SQH4-s', 'L', '绿', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),im1.shape[1], im1.shape[0], im1]
+#
+# for i in range(1, 11):
+#    di = 0.1*i
+#    img1 = cv2.resize(im1, dsize=None, fx=di, fy=di, interpolation=cv2.INTER_LINEAR)
+#    # 直方图归一化，应对白色的头盔
+#    cv2.normalize(img1, img1, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+#    img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+#
+#    # 初始化SIFT特征检测器
+#    sift = cv2.SIFT_create(500)
+#
+#    # 使用特征检测器找特征点和描述子
+#    kp1, des1 = sift.detectAndCompute(img1, None)
+#
+#    x.append(des1)
+#
+# for i in x:
+#    print(type(i))
+# cursor.execute(sql, x)
+# conn.commit()
+# cursor.close()
+# conn.close()
+
+#-------------------------------------------------------------------
+
+import sqlite3
 import cv2
-import time
+import numpy as np
 
-# 读取图片并转换成黑白图
-im1 = cv2.imread('./data_color/templates/o1.bmp', cv2.IMREAD_COLOR)  # trainImage
-print(im1.shape)
+conn = sqlite3.connect('helmetDB.db3')
+cursor = conn.cursor()
+result = cursor.execute('SELECT * from helmet where model="hg"')
+all = result.fetchall()
 
-
-start = time.time()
-for i in range(1, 11):
-   di = i*0.1
-   img1 = cv2.resize(im1, dsize=None, fx=di, fy=di, interpolation=cv2.INTER_LINEAR)
-   # 直方图归一化，应对白色的头盔
-   cv2.normalize(img1, img1, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
-   img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-
-   # 初始化SIFT特征检测器
-   sift = cv2.SIFT_create(500)
-
-   # 使用特征检测器找特征点和描述子
-   kp1, des1 = sift.detectAndCompute(img1, None)
-   print(type(kp1[1]), type(des1))
-   print(kp1, des1)
-   print('--'*20)
-print(time.time()-start)
+for record in all:
+   img = np.frombuffer(record[6], dtype=np.uint8)
+   print(len(img))
+   img = np.reshape(img, (1136, 1836))
+   des = np.frombuffer(record[8], dtype=np.float32)
+   des = np.reshape(des, (-1, 128))
+   print(des)
+cv2.imshow('1', img)
+cv2.waitKey()
+cv2.destroyAllWindows()

@@ -1,28 +1,30 @@
 # -*- coding: utf-8 -*-
 
-import sys
+import copy
+import datetime
+import gc
 import os
+import sys
+import sqlite3
 import cv2
 import numpy
-import gc
-import datetime
-import copy
 
-from PyQt5.QtWidgets import QApplication, QWidget, QDialog, QMessageBox
-from PyQt5.QtCore import  pyqtSlot,QSettings,pyqtSignal,Qt
+from PyQt5.QtCore import pyqtSlot, QSettings
+from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
+
+from ImageConvert import *
+from MVSDK import *
+from camera_lib import enumCameras, openCamera, closeCamera, setSoftTriggerConf, setExposureTime, grabOne
+from myDialogMakeTemp import QmyDialogMakeTemp
+from myDialogSetParams import QmyDialogSetParams
+from ui_MainWidget import Ui_Form as Ui_Widget
+
+
 ##from PyQt5.QtWidgets import
 ##from PyQt5.QtGui import
 ##from PyQt5.QtSql import
 ##from PyQt5.QtMultimedia import
 ##from PyQt5.QtMultimediaWidgets import
-
-from ui_MainWidget import Ui_Form as Ui_Widget
-from myDialogSetParams import QmyDialogSetParams
-from myDialogMakeTemp import QmyDialogMakeTemp
-
-from camera_lib import enumCameras, openCamera, closeCamera, setSoftTriggerConf, setExposureTime, grabOne
-from MVSDK import *
-from ImageConvert import *
 
 
 class QmyWidget(QWidget):
@@ -323,6 +325,30 @@ class QmyWidget(QWidget):
       return des_dic
 
 
+   def do_sqlInsert(self, image, model, size, color, des_dic):
+      if not os.path.exists('./helmetDB.db3'):
+         messageBox = QMessageBox(QMessageBox.Warning, "warning", "没有数据库文件")
+         messageBox.exec()
+         return
+      conn = sqlite3.connect('helmetDB.db3')
+      cursor = conn.cursor()
+
+      sql = 'INSERT into helmet values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+
+      x = [model, size, color, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), image.shape[1], image.shape[0],
+           image.tobytes()]
+      for index in des_dic:
+         x.append(des_dic[index].tobytes())
+      for i in x:
+         print(type(i))
+      cursor.execute(sql, x)
+      conn.commit()
+      cursor.close()
+      conn.close()
+
+      messageBox = QMessageBox(QMessageBox.Ok, "ok", "数据库插入成功")
+      messageBox.exec()
+
 ##  ==============event处理函数==========================
 
 
@@ -504,6 +530,16 @@ class QmyWidget(QWidget):
          dialogMakeTemp.get_image(nImage)
          dialogMakeTemp.show_image()
          ret = dialogMakeTemp.exec()
+         while ret and (dialogMakeTemp.ui.lineEditColor.text()=="" or dialogMakeTemp.ui.lineEditModel.text()==""):
+            messageBox = QMessageBox(QMessageBox.Warning, "warning", "请填写型号和颜色")
+            messageBox.exec()
+            ret = dialogMakeTemp.exec()
+         if ret:
+            model = dialogMakeTemp.ui.lineEditModel.text()
+            size = dialogMakeTemp.ui.comboBoxSize.currentText()
+            color = dialogMakeTemp.ui.lineEditColor.text()
+
+            self.do_sqlInsert(nImage, model, size, color, des_dic)
 
 
       if self.camera_flag:
