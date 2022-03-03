@@ -319,7 +319,7 @@ class QmyWidget(QWidget):
          # 使用特征检测器找特征点和描述子
          kp1, des1 = sift.detectAndCompute(img1, None)
 
-         name = "descriptor(resize %.1f)"%(i*0.1)
+         name = "descriptor_{}".format(str(i))
          des_dic[name] = copy.deepcopy(des1)
 
       return des_dic
@@ -329,7 +329,7 @@ class QmyWidget(QWidget):
       if not os.path.exists('./helmetDB.db3'):
          messageBox = QMessageBox(QMessageBox.Warning, "warning", "没有数据库文件")
          messageBox.exec()
-         return
+         return -1
       conn = sqlite3.connect('helmetDB.db3')
       cursor = conn.cursor()
 
@@ -346,8 +346,8 @@ class QmyWidget(QWidget):
       cursor.close()
       conn.close()
 
-      messageBox = QMessageBox(QMessageBox.Ok, "ok", "数据库插入成功")
-      messageBox.exec()
+      return 0
+
 
 ##  ==============event处理函数==========================
 
@@ -539,7 +539,12 @@ class QmyWidget(QWidget):
             size = dialogMakeTemp.ui.comboBoxSize.currentText()
             color = dialogMakeTemp.ui.lineEditColor.text()
 
-            self.do_sqlInsert(nImage, model, size, color, des_dic)
+            ret = self.do_sqlInsert(nImage, model, size, color, des_dic)
+
+            if ret == 0:
+               # messageBox = QMessageBox(QMessageBox.about, "ok", "数据库插入成功")
+               QMessageBox.about(self, 'about', '数据库插入成功')
+               # messageBox.exec()
 
 
       if self.camera_flag:

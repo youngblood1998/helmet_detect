@@ -10,3 +10,6 @@ call pyuic5 -o ui_DialogSetParams.py  DialogSetParams.ui
 
 call copy .\QtApp\DialogMakeTemp.ui  DialogMakeTemp.ui
 call pyuic5 -o ui_DialogMakeTemp.py  DialogMakeTemp.ui
+
+call copy .\QtApp\DialogSelectTemp.ui  DialogSelectTemp.ui
+call pyuic5 -o ui_DialogSelectTemp.py  DialogSelectTemp.ui
