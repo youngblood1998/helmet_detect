@@ -6,6 +6,8 @@ import gc
 import os
 import sys
 import sqlite3
+import time
+
 import cv2
 import numpy
 
@@ -14,9 +16,12 @@ from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
 
 from ImageConvert import *
 from MVSDK import *
-from camera_lib import enumCameras, openCamera, closeCamera, setSoftTriggerConf, setExposureTime, grabOne
+from camera_lib import enumCameras, openCamera, closeCamera, setSoftTriggerConf, setExposureTime, grabOne, \
+   setLineTriggerConf
+from detect_lib.sift_flann import SiftFlann
 from myDialogMakeTemp import QmyDialogMakeTemp
 from myDialogSetParams import QmyDialogSetParams
+from myDialogSelectTemp import QmyDialogSelectTemp
 from ui_MainWidget import Ui_Form as Ui_Widget
 
 
@@ -35,6 +40,7 @@ class QmyWidget(QWidget):
       self.ui.setupUi(self)  # 构造UI界面
 
       self.camera_flag = False
+      self.detect_flag = False
 
       # 将一部分按钮设置成非使能状态
       self.ui.btnLinkCamera.setEnabled(False)
@@ -58,14 +64,75 @@ class QmyWidget(QWidget):
          'ratio': 0.9
       }
 
+      self.select_temp = []
+
       if not os.path.exists('./config.ini'):
          self.settings = QSettings("./config.ini", QSettings.IniFormat)
          for param_name in self.default_params:
             self.settings.setValue(param_name, self.default_params[param_name])
       self.settings = QSettings("./config.ini", QSettings.IniFormat)
 
+      self.frameCallbackFuncEx = callbackFuncEx(self.test_callback)
 
 ##  ==============自定义功能函数========================
+   def test_callback(self, frame, userInfo):
+      if not self.detect_flag:
+         return 0
+
+      nRet = frame.contents.valid(frame)
+      if (nRet != 0):
+         print("frame is invalid!")
+         # 释放驱动图像缓存资源
+         frame.contents.release(frame)
+         return -1
+
+      print("BlockId = %d userInfo = %s" % (frame.contents.getBlockId(frame), c_char_p(userInfo).value))
+
+      imageParams = IMGCNV_SOpenParam()
+      imageParams.dataSize = frame.contents.getImageSize(frame)
+      imageParams.height = frame.contents.getImageHeight(frame)
+      imageParams.width = frame.contents.getImageWidth(frame)
+      imageParams.paddingX = frame.contents.getImagePaddingX(frame)
+      imageParams.paddingY = frame.contents.getImagePaddingY(frame)
+      imageParams.pixelForamt = frame.contents.getImagePixelFormat(frame)
+
+      # 将裸数据图像拷出
+      imageBuff = frame.contents.getImage(frame)
+      userBuff = c_buffer(b'\0', imageParams.dataSize)
+      memmove(userBuff, c_char_p(imageBuff), imageParams.dataSize)
+
+      # 释放驱动图像缓存资源
+      frame.contents.release(frame)
+
+      # 如果图像格式是 Mono8 直接使用
+      if imageParams.pixelForamt == EPixelType.gvspPixelMono8:
+         grayByteArray = bytearray(userBuff)
+         cvImage = numpy.array(grayByteArray).reshape(imageParams.height, imageParams.width)
+      else:
+         # 转码 => BGR24
+         rgbSize = c_int()
+         rgbBuff = c_buffer(b'\0', imageParams.height * imageParams.width * 3)
+
+         nRet = IMGCNV_ConvertToBGR24(cast(userBuff, c_void_p), \
+                                      byref(imageParams), \
+                                      cast(rgbBuff, c_void_p), \
+                                      byref(rgbSize))
+
+         colorByteArray = bytearray(rgbBuff)
+         cvImage = numpy.array(colorByteArray).reshape(imageParams.height, imageParams.width, 3)
+
+      # 检测
+      sift = SiftFlann(min_match_count=int(self.settings.value("min_match_count")),
+                       resize_times=float(self.settings.value("resize_times")),
+                       max_matches=int(self.settings.value("max_matches")),
+                       trees=int(self.settings.value("trees")),
+                       checks=int(self.settings.value("checks")),
+                       k=int(self.settings.value("k")),
+                       ratio=float(self.settings.value("ratio"))
+                       )
+      result, angle = sift.match(self.select_temp, cvImage)
+
+
    def do_testCamera(self):
       # 通用属性设置:设置触发模式为off --根据属性类型，直接构造属性节点。如触发模式是 enumNode，构造enumNode节点
       # 自由拉流：TriggerMode 需为 off
@@ -349,6 +416,52 @@ class QmyWidget(QWidget):
       return 0
 
 
+   def do_detect(self):
+      # 注册拉流回调函数
+      userInfo = b"jay"
+      nRet = self.streamSource.contents.attachGrabbingEx(self.streamSource, self.frameCallbackFuncEx, userInfo)
+      if (nRet != 0):
+         print("attachGrabbingEx fail!")
+         return -1
+
+      # 设置曝光时间
+      nRet = setExposureTime(self.camera, int(self.settings.value("exposure_time")))
+      if (nRet != 0):
+         print("set ExposureTime fail")
+         return -1
+
+      # 设置外触发
+      nRet = setLineTriggerConf(self.camera, int(self.settings.value("trigger_delay")))
+      if (nRet != 0):
+         print("set LineTriggerConf fail!")
+         return -1
+      else:
+         print("set LineTriggerConf success!")
+
+      # 开始拉流
+      nRet = self.streamSource.contents.startGrabbing(self.streamSource, c_ulonglong(0), \
+                                                 c_int(GENICAM_EGrabStrategy.grabStrartegySequential))
+      if (nRet != 0):
+         print("startGrabbing fail!")
+         return -1
+
+      # 堵塞
+      if self.detect_flag:
+         time.sleep(1)
+
+      # 反注册回调函数
+      nRet = self.streamSource.contents.detachGrabbingEx(self.streamSource, self.frameCallbackFuncEx, userInfo)
+      if (nRet != 0):
+         print("detachGrabbingEx fail!")
+         return -1
+
+      # 停止拉流
+      nRet = self.streamSource.contents.stopGrabbing(self.streamSource)
+      if (nRet != 0):
+         print("stopGrabbing fail!")
+         return -1
+
+
 ##  ==============event处理函数==========================
 
 
@@ -478,9 +591,15 @@ class QmyWidget(QWidget):
       self.ui.btnMakeTemp.setEnabled(False)
       self.ui.btnTestCamera.setEnabled(False)
 
+      self.detect_flag = True
+      self.do_detect()
+
+
    # 停止检测
    @pyqtSlot()
    def on_btnStopDetect_clicked(self):
+      self.detect_flag = False
+
       if self.camera_flag:
          self.ui.btnStartDetect.setEnabled(True)
          self.ui.btnMakeTemp.setEnabled(True)
@@ -508,7 +627,14 @@ class QmyWidget(QWidget):
    # 选择模板
    @pyqtSlot()
    def on_btnSelectTemp_clicked(self):
-      print("选择模板")
+      dialogSelectTemp = QmyDialogSelectTemp()
+      dialogSelectTemp.set_temp(self.select_temp)
+      dialogSelectTemp.do_showSelectTemp()
+      ret = dialogSelectTemp.exec()
+
+      if ret:
+         self.select_temp = dialogSelectTemp.get_temp()
+         print(len(self.select_temp))
 
    # 拍摄模板
    @pyqtSlot()
@@ -538,7 +664,10 @@ class QmyWidget(QWidget):
             model = dialogMakeTemp.ui.lineEditModel.text()
             size = dialogMakeTemp.ui.comboBoxSize.currentText()
             color = dialogMakeTemp.ui.lineEditColor.text()
-
+            if len(image) == 3:
+               nImage = cv2.cvtColor(nImage, cv2.COLOR_BGR2RGB)
+            else:
+               nImage = cv2.cvtColor(nImage, cv2.COLOR_GRAY2RGB)
             ret = self.do_sqlInsert(nImage, model, size, color, des_dic)
 
             if ret == 0:

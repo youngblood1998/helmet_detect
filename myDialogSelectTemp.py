@@ -2,8 +2,13 @@
 import os
 import sys
 
+import cv2
+import numpy as np
+from PyQt5 import QtGui
+import copy
+
 from PyQt5.QtCore import Qt, QItemSelectionModel, QModelIndex
-from PyQt5.QtWidgets import QApplication, QDialog, QMessageBox
+from PyQt5.QtWidgets import QApplication, QDialog, QMessageBox, QTableWidgetItem
 
 from PyQt5.QtCore import  pyqtSlot,pyqtSignal,Qt
 
@@ -31,10 +36,18 @@ class QmyDialogSelectTemp(QDialog):
       self.ui.btnSave.setEnabled(False)
       self.ui.btnRevert.setEnabled(False)
 
-      self.do_showAllTemp()
+      self.selectedTemp = []
 
+      self.do_showAllTemp()
+      self.do_showSelectTemp()
 
 ##  ============自定义功能函数========================
+   def set_temp(self, select_temp):
+      self.selectedTemp = copy.deepcopy(select_temp)
+
+   def get_temp(self):
+      return copy.deepcopy(self.selectedTemp)
+
    def __getFieldNames(self):
       emptyRec = self.tableModel.record()     #获取空记录，只有字段名
       self.fldNum={}   #字段名与序号的字典
@@ -42,7 +55,7 @@ class QmyDialogSelectTemp(QDialog):
          fieldName=emptyRec.fieldName(i)
          self.fldNum.setdefault(fieldName)
          self.fldNum[fieldName]=i
-      print (self.fldNum)
+      # print (self.fldNum)
 
 
    def __openTable(self):
@@ -63,16 +76,17 @@ class QmyDialogSelectTemp(QDialog):
       self.tableModel.setHeaderData(self.fldNum["height"], Qt.Horizontal, "图片高")
       self.tableModel.setHeaderData(self.fldNum["image"], Qt.Horizontal, "图片")
 
-      self.tableModel.setHeaderData(self.fldNum["descriptor_1"], Qt.Horizontal, "0.1倍描述子")  # 这两个字段不在tableView中显示
-      self.tableModel.setHeaderData(self.fldNum["descriptor_2"], Qt.Horizontal, "0.2倍描述子")
-      self.tableModel.setHeaderData(self.fldNum["descriptor_3"], Qt.Horizontal, "0.3倍描述子")
-      self.tableModel.setHeaderData(self.fldNum["descriptor_4"], Qt.Horizontal, "0.4倍描述子")
-      self.tableModel.setHeaderData(self.fldNum["descriptor_5"], Qt.Horizontal, "0.5倍描述子")
-      self.tableModel.setHeaderData(self.fldNum["descriptor_6"], Qt.Horizontal, "0.6倍描述子")
-      self.tableModel.setHeaderData(self.fldNum["descriptor_7"], Qt.Horizontal, "0.7倍描述子")
-      self.tableModel.setHeaderData(self.fldNum["descriptor_8"], Qt.Horizontal, "0.8倍描述子")
-      self.tableModel.setHeaderData(self.fldNum["descriptor_9"], Qt.Horizontal, "0.9倍描述子")
-      self.tableModel.setHeaderData(self.fldNum["descriptor_10"], Qt.Horizontal, "0.10倍描述子")
+      for i in range(1, 11):
+         self.tableModel.setHeaderData(self.fldNum["descriptor_{}".format(i)], Qt.Horizontal, "0.{}倍描述子".format(i))  # 这两个字段不在tableView中显示
+      # self.tableModel.setHeaderData(self.fldNum["descriptor_2"], Qt.Horizontal, "0.2倍描述子")
+      # self.tableModel.setHeaderData(self.fldNum["descriptor_3"], Qt.Horizontal, "0.3倍描述子")
+      # self.tableModel.setHeaderData(self.fldNum["descriptor_4"], Qt.Horizontal, "0.4倍描述子")
+      # self.tableModel.setHeaderData(self.fldNum["descriptor_5"], Qt.Horizontal, "0.5倍描述子")
+      # self.tableModel.setHeaderData(self.fldNum["descriptor_6"], Qt.Horizontal, "0.6倍描述子")
+      # self.tableModel.setHeaderData(self.fldNum["descriptor_7"], Qt.Horizontal, "0.7倍描述子")
+      # self.tableModel.setHeaderData(self.fldNum["descriptor_8"], Qt.Horizontal, "0.8倍描述子")
+      # self.tableModel.setHeaderData(self.fldNum["descriptor_9"], Qt.Horizontal, "0.9倍描述子")
+      # self.tableModel.setHeaderData(self.fldNum["descriptor_10"], Qt.Horizontal, "0.10倍描述子")
 
       self.selModel = QItemSelectionModel(self.tableModel)  # 选择模型
       self.selModel.currentChanged.connect(self.do_currentChanged)  # 当前项变化时触发
@@ -85,6 +99,27 @@ class QmyDialogSelectTemp(QDialog):
       for i in range(1, 11):
          self.ui.tableViewAllTemp.setColumnHidden(self.fldNum["descriptor_{}".format(i)], True)  # 隐藏列
 
+   def __freshTable(self):
+      self.ui.tableWidgetSelectTemp.setRowCount(0)
+      self.ui.tableWidgetSelectTemp.clearContents()
+      for t in self.selectedTemp:
+         column = 0
+         row = self.ui.tableWidgetSelectTemp.rowCount()
+         self.ui.tableWidgetSelectTemp.insertRow(row)
+         for index in t:
+            if column == 6:
+               break
+            item = QTableWidgetItem(str(t[index]))
+            self.ui.tableWidgetSelectTemp.setItem(row, column, item)
+            column += 1
+
+      # print(self.ui.tableWidgetSelectTemp.rowCount())
+      if self.ui.tableWidgetSelectTemp.rowCount() > 0:
+         self.ui.btnRemove.setEnabled(True)
+         self.ui.btnClear.setEnabled(True)
+      else:
+         self.ui.btnRemove.setEnabled(False)
+         self.ui.btnClear.setEnabled(False)
 
 
    def do_showAllTemp(self):
@@ -98,6 +133,18 @@ class QmyDialogSelectTemp(QDialog):
          self.__openTable()
       else:
          QMessageBox.warning(self, "错误", "打开数据库失败")
+
+
+   def do_showSelectTemp(self):
+      self.ui.tableWidgetSelectTemp.setColumnCount(6)
+      headerText = ["型号", "尺寸", "颜色", "日期", "图片宽", "图片高"]
+      for i in range(len(headerText)):
+         headerItem = QTableWidgetItem(headerText[i])
+         self.ui.tableWidgetSelectTemp.setHorizontalHeaderItem(i, headerItem)
+
+      self.__freshTable()
+
+      self.ui.tableWidgetSelectTemp.currentItemChanged.connect(self.do_currentRowChanged_2)
 
 ##  ===========event处理函数==========================
 
@@ -132,13 +179,118 @@ class QmyDialogSelectTemp(QDialog):
          else:
             return
 
+   @pyqtSlot()
+   def on_btnSearch_clicked(self):
+      self.tableModel.setFilter("model like '%{}%'".format(self.ui.lineEditSearch.text()))
+
+   @pyqtSlot()
+   def on_btnSelect_clicked(self):
+      temp = {}
+      for i in self.fldNum:
+         temp[i] = self.curRec.value(i)
+      self.selectedTemp.append(temp)
+
+      self.__freshTable()
+
+   @pyqtSlot()
+   def on_btnRemove_clicked(self):
+      curRow = self.ui.tableWidgetSelectTemp.currentRow()
+      # if curRow == -1:
+      #    return
+      # for i in range(len(self.selectedTemp)):
+      #    flag = True
+      #    itemModel = self.ui.tableWidgetSelectTemp.item(curRow, 0).text()
+      #    itemSize = self.ui.tableWidgetSelectTemp.item(curRow, 1).text()
+      #    itemColor = self.ui.tableWidgetSelectTemp.item(curRow, 2).text()
+      #    itemDate = self.ui.tableWidgetSelectTemp.item(curRow, 3).text()
+      #    itemWidth = int(self.ui.tableWidgetSelectTemp.item(curRow, 4).text())
+      #    itemHeight = int(self.ui.tableWidgetSelectTemp.item(curRow, 5).text())
+      #
+      #    if ((itemModel != self.selectedTemp[i]["model"]) | (itemSize != self.selectedTemp[i]["size"]) |
+      #       (itemColor != self.selectedTemp[i]["color"]) | (itemDate != self.selectedTemp[i]["date"]) |
+      #       (itemWidth != self.selectedTemp[i]["width"]) | (itemHeight != self.selectedTemp[i]["height"])):
+      #       flag = False
+      #
+      #    if flag == True:
+      #       self.selectedTemp.pop(i)
+      #       break
+      self.selectedTemp.pop(curRow)
+      self.__freshTable()
+
+   @pyqtSlot()
+   def on_btnClear_clicked(self):
+      self.ui.tableWidgetSelectTemp.setRowCount(0)
+      self.ui.tableWidgetSelectTemp.clearContents()
+      self.selectedTemp.clear()
+
 ##  ==========自定义槽函数===============================
    def do_currentChanged(self):
       self.ui.btnSave.setEnabled(self.tableModel.isDirty())
       self.ui.btnRevert.setEnabled(self.tableModel.isDirty())
 
-   def do_currentRowChanged(self):
-      print("行变化")
+   def do_currentRowChanged(self, current, previous):
+      curRec = self.tableModel.record(current.row())
+      self.curRec = curRec
+      if curRec.isNull("image"):
+         self.ui.labAllTemp.clear()
+      else:
+         image_data = curRec.value("image")
+         width = curRec.value("width")
+         height = curRec.value("height")
+         image = np.frombuffer(image_data, dtype=np.uint8)
+         # if int(width)*int(height) == len(image):
+         #    image = np.reshape(image, (int(height), int(width)))
+         #    image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+         # elif int(width)*int(height)*3 == len(image):
+         #    image = np.reshape(image, (int(height), int(width), 3))
+         try:
+            image = np.reshape(image, (int(height), int(width), 3))
+            qt_image = QtGui.QImage(image.data,
+                                    image.shape[1],
+                                    image.shape[0],
+                                    image.shape[1] * 3,
+                                    QtGui.QImage.Format.Format_RGB888)
+
+            w = image.shape[1]
+            h = image.shape[0]
+            W = self.ui.labAllTemp.size().width()
+            H = self.ui.labAllTemp.size().height()
+
+            if float(H) / h > float(W) / w:
+               self.ui.labAllTemp.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToWidth(W))
+            else:
+               self.ui.labAllTemp.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
+         except Exception as e:
+            QMessageBox.warning(self, "警告", "图片数据出错")
+
+
+   def do_currentRowChanged_2(self, current, previous):
+      if current is None:
+         return
+      row = current.row()
+      image_data = self.selectedTemp[row]["image"]
+      width = self.selectedTemp[row]["width"]
+      height = self.selectedTemp[row]["height"]
+      image = np.frombuffer(image_data, dtype=np.uint8)
+      image = np.reshape(image, (int(height), int(width), 3))
+      try:
+         qt_image = QtGui.QImage(image.data,
+                                 image.shape[1],
+                                 image.shape[0],
+                                 image.shape[1] * 3,
+                                 QtGui.QImage.Format.Format_RGB888)
+
+         w = image.shape[1]
+         h = image.shape[0]
+         W = self.ui.labSelectTemp.size().width()
+         H = self.ui.labSelectTemp.size().height()
+
+         if float(H) / h > float(W) / w:
+            self.ui.labSelectTemp.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToWidth(W))
+         else:
+            self.ui.labSelectTemp.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
+      except Exception as e:
+         QMessageBox.warning(self, "警告", "图片数据出错")
 
 ##  ============窗体测试程序 ============================
 if __name__ == "__main__":  # 用于当前窗体测试

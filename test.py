@@ -487,22 +487,26 @@
 
 #-------------------------------------------------------------------
 
-import sqlite3
-import cv2
-import numpy as np
+# import sqlite3
+# import cv2
+# import numpy as np
+#
+# conn = sqlite3.connect('helmetDB.db3')
+# cursor = conn.cursor()
+# result = cursor.execute('SELECT * from helmet where model="AAA"')
+# all = result.fetchall()
+#
+# for record in all:
+#    img = np.frombuffer(record[6], dtype=np.uint8)
+#    print(len(img))
+#    img = np.reshape(img, (1668, 1924))
+#    des = np.frombuffer(record[8], dtype=np.float32)
+#    des = np.reshape(des, (-1, 128))
+#    print(des)
+# cv2.imshow('1', img)
+# cv2.waitKey()
+# cv2.destroyAllWindows()
 
-conn = sqlite3.connect('helmetDB.db3')
-cursor = conn.cursor()
-result = cursor.execute('SELECT * from helmet where model="AAA"')
-all = result.fetchall()
-
-for record in all:
-   img = np.frombuffer(record[6], dtype=np.uint8)
-   print(len(img))
-   img = np.reshape(img, (1668, 1924))
-   des = np.frombuffer(record[8], dtype=np.float32)
-   des = np.reshape(des, (-1, 128))
-   print(des)
-cv2.imshow('1', img)
-cv2.waitKey()
-cv2.destroyAllWindows()
+#------------------------------------------
+a = "0.01000"
+print(float(a))

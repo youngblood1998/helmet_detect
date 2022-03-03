@@ -219,7 +219,7 @@
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_6" stretch="6,4">
          <item>
-          <widget class="QTableView" name="tableViewSelectTemp"/>
+          <widget class="QTableWidget" name="tableWidgetSelectTemp"/>
          </item>
          <item>
           <widget class="QFrame" name="frame_5">
@@ -262,6 +262,19 @@
                  </property>
                  <property name="text">
                   <string>移除所选模板</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnClear">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>清空所有已选模板</string>
                  </property>
                 </widget>
                </item>
