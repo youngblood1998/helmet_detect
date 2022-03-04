@@ -508,5 +508,8 @@
 # cv2.destroyAllWindows()
 
 #------------------------------------------
-a = "0.01000"
-print(float(a))
+# a = "0.01000"
+# print(float(a))
+#---------------------------------------
+# import numpy
+# print(numpy.MAXDIMS)

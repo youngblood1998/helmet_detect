@@ -149,9 +149,8 @@ def demo():
         return -1
 
     # 自由拉流 x 秒
-    time.sleep(60)
-    global g_isStop
-    g_isStop = 1
+    while True:
+        time.sleep(1)
 
     # 反注册回调函数
     nRet = streamSource.contents.detachGrabbingEx(streamSource, frameCallbackFuncEx, userInfo)

@@ -44,6 +44,7 @@ class QmyDialogSelectTemp(QDialog):
 ##  ============自定义功能函数========================
    def set_temp(self, select_temp):
       self.selectedTemp = copy.deepcopy(select_temp)
+      # print(len(self.selectedTemp[0]))
 
    def get_temp(self):
       return copy.deepcopy(self.selectedTemp)
@@ -76,8 +77,8 @@ class QmyDialogSelectTemp(QDialog):
       self.tableModel.setHeaderData(self.fldNum["height"], Qt.Horizontal, "图片高")
       self.tableModel.setHeaderData(self.fldNum["image"], Qt.Horizontal, "图片")
 
-      for i in range(1, 11):
-         self.tableModel.setHeaderData(self.fldNum["descriptor_{}".format(i)], Qt.Horizontal, "0.{}倍描述子".format(i))  # 这两个字段不在tableView中显示
+      # for i in range(1, 11):
+      #    self.tableModel.setHeaderData(self.fldNum["descriptor_{}".format(i)], Qt.Horizontal, "0.{}倍描述子".format(i))  # 这两个字段不在tableView中显示
       # self.tableModel.setHeaderData(self.fldNum["descriptor_2"], Qt.Horizontal, "0.2倍描述子")
       # self.tableModel.setHeaderData(self.fldNum["descriptor_3"], Qt.Horizontal, "0.3倍描述子")
       # self.tableModel.setHeaderData(self.fldNum["descriptor_4"], Qt.Horizontal, "0.4倍描述子")
@@ -96,8 +97,8 @@ class QmyDialogSelectTemp(QDialog):
       self.ui.tableViewAllTemp.setSelectionModel(self.selModel)  # 设置选择模型
 
       self.ui.tableViewAllTemp.setColumnHidden(self.fldNum["image"], True)  # 隐藏列
-      for i in range(1, 11):
-         self.ui.tableViewAllTemp.setColumnHidden(self.fldNum["descriptor_{}".format(i)], True)  # 隐藏列
+      # for i in range(1, 11):
+      #    self.ui.tableViewAllTemp.setColumnHidden(self.fldNum["descriptor_{}".format(i)], True)  # 隐藏列
 
    def __freshTable(self):
       self.ui.tableWidgetSelectTemp.setRowCount(0)

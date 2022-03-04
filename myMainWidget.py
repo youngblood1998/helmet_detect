@@ -10,6 +10,7 @@ import time
 
 import cv2
 import numpy
+from PyQt5 import QtGui
 
 from PyQt5.QtCore import pyqtSlot, QSettings
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
@@ -18,7 +19,7 @@ from ImageConvert import *
 from MVSDK import *
 from camera_lib import enumCameras, openCamera, closeCamera, setSoftTriggerConf, setExposureTime, grabOne, \
    setLineTriggerConf
-from detect_lib.sift_flann import SiftFlann
+from detect_lib.sift_flann_new import SiftFlann
 from myDialogMakeTemp import QmyDialogMakeTemp
 from myDialogSetParams import QmyDialogSetParams
 from myDialogSelectTemp import QmyDialogSelectTemp
@@ -76,8 +77,8 @@ class QmyWidget(QWidget):
 
 ##  ==============自定义功能函数========================
    def test_callback(self, frame, userInfo):
-      if not self.detect_flag:
-         return 0
+      # if not self.detect_flag:
+      #    return
 
       nRet = frame.contents.valid(frame)
       if (nRet != 0):
@@ -121,6 +122,35 @@ class QmyWidget(QWidget):
          colorByteArray = bytearray(rgbBuff)
          cvImage = numpy.array(colorByteArray).reshape(imageParams.height, imageParams.width, 3)
 
+      # 格式转换
+      if len(cvImage) == 3:
+         cvtImage = cv2.cvtColor(cvImage, cv2.COLOR_BGR2RGB)
+      else:
+         cvtImage = cv2.cvtColor(cvImage, cv2.COLOR_GRAY2RGB)
+
+      # 显示输入
+      try:
+         qt_image = QtGui.QImage(cvtImage.data,
+                                 cvtImage.shape[1],
+                                 cvtImage.shape[0],
+                                 cvtImage.shape[1] * 3,
+                                 QtGui.QImage.Format.Format_RGB888)
+
+         w = cvtImage.shape[1]
+         h = cvtImage.shape[0]
+         W = self.ui.labInput.size().width()
+         H = self.ui.labInput.size().height()
+
+         if float(H) / h > float(W) / w:
+            self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToWidth(W))
+         else:
+            self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
+      except Exception as e:
+         QMessageBox.warning(self, "警告", "图片输入出错")
+
+      self.ui.labOutput.clear()
+      self.ui.label_2.clear()
+
       # 检测
       sift = SiftFlann(min_match_count=int(self.settings.value("min_match_count")),
                        resize_times=float(self.settings.value("resize_times")),
@@ -130,7 +160,60 @@ class QmyWidget(QWidget):
                        k=int(self.settings.value("k")),
                        ratio=float(self.settings.value("ratio"))
                        )
-      result, angle = sift.match(self.select_temp, cvImage)
+      # kp2, des2 = self.do_createDes(cvtImage)
+      result, dir, imageDraw = sift.match(self.temp_arr, cvtImage)
+
+      if not result is None:
+         print(result["model"])
+
+         try:
+            qt_image = QtGui.QImage(imageDraw.data,
+                                    imageDraw.shape[1],
+                                    imageDraw.shape[0],
+                                    imageDraw.shape[1] * 3,
+                                    QtGui.QImage.Format.Format_RGB888)
+
+            w = imageDraw.shape[1]
+            h = imageDraw.shape[0]
+            W = self.ui.labInput.size().width()
+            H = self.ui.labInput.size().height()
+
+            if float(H) / h > float(W) / w:
+               self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToWidth(W))
+            else:
+               self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
+         except Exception as e:
+            QMessageBox.warning(self, "警告", "图片输入出错")
+
+         image = result["image"]
+         try:
+            qt_image = QtGui.QImage(image.data,
+                                    image.shape[1],
+                                    image.shape[0],
+                                    image.shape[1] * 3,
+                                    QtGui.QImage.Format.Format_RGB888)
+
+            w = image.shape[1]
+            h = image.shape[0]
+            W = self.ui.labOutput.size().width()
+            H = self.ui.labOutput.size().height()
+
+            if float(H) / h > float(W) / w:
+               self.ui.labOutput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToWidth(W))
+            else:
+               self.ui.labOutput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
+         except Exception as e:
+            QMessageBox.warning(self, "警告", "图片输入出错")
+
+         label = self.ui.label_2
+         label.setStyleSheet('color: green')
+         s = "前" if dir==0 else "后"
+         label.setText("型号："+result["model"]+"；\t尺寸:"+result["size"]+"；\t方向："+str(s))
+         # self.ui.label_2.setText("型号："+result["model"]+"；尺寸:"+result["size"]+"；方向："+angle)
+      else:
+         label = self.ui.label_2
+         label.setStyleSheet('color: red')
+         self.ui.label_2.setText("无匹配结果")
 
 
    def do_testCamera(self):
@@ -278,8 +361,9 @@ class QmyWidget(QWidget):
       if (nRet != 0):
          print("stopGrabbing fail!")
          # 释放相关资源
-         self.streamSource.contents.release(self.streamSource)
          return
+
+      self.streamSource.contents.release(self.streamSource)
 
 
    def do_grabOne(self):
@@ -371,28 +455,22 @@ class QmyWidget(QWidget):
 
 
    def do_createDes(self, im1):
-      des_dic = {}
-      for i in range(1, 11):
-         di = i * 0.1
-         img1 = cv2.resize(im1, dsize=None, fx=di, fy=di, interpolation=cv2.INTER_LINEAR)
-         # 直方图归一化，应对白色的头盔
-         cv2.normalize(img1, img1, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
-         if len(img1.shape) == 3:
-            img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+      di = float(self.settings.value("resize_times"))
+      img1 = cv2.resize(im1, dsize=None, fx=di, fy=di, interpolation=cv2.INTER_LINEAR)
+      # 直方图归一化，应对白色的头盔
+      cv2.normalize(img1, img1, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+      if len(img1.shape) == 3:
+         img1 = cv2.cvtColor(img1, cv2.COLOR_RGB2GRAY)
 
-         # 初始化SIFT特征检测器
-         sift = cv2.SIFT_create()
+      # 初始化SIFT特征检测器
+      sift = cv2.SIFT_create()
+      # 使用特征检测器找特征点和描述子
+      kp1, des1 = sift.detectAndCompute(img1, None)
 
-         # 使用特征检测器找特征点和描述子
-         kp1, des1 = sift.detectAndCompute(img1, None)
-
-         name = "descriptor_{}".format(str(i))
-         des_dic[name] = copy.deepcopy(des1)
-
-      return des_dic
+      return kp1, des1
 
 
-   def do_sqlInsert(self, image, model, size, color, des_dic):
+   def do_sqlInsert(self, image, model, size, color):
       if not os.path.exists('./helmetDB.db3'):
          messageBox = QMessageBox(QMessageBox.Warning, "warning", "没有数据库文件")
          messageBox.exec()
@@ -400,14 +478,12 @@ class QmyWidget(QWidget):
       conn = sqlite3.connect('helmetDB.db3')
       cursor = conn.cursor()
 
-      sql = 'INSERT into helmet values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+      sql = 'INSERT into helmet values (?,?,?,?,?,?,?)'
 
       x = [model, size, color, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), image.shape[1], image.shape[0],
            image.tobytes()]
-      for index in des_dic:
-         x.append(des_dic[index].tobytes())
-      for i in x:
-         print(type(i))
+      # for i in x:
+      #    print(type(i))
       cursor.execute(sql, x)
       conn.commit()
       cursor.close()
@@ -445,11 +521,9 @@ class QmyWidget(QWidget):
          print("startGrabbing fail!")
          return -1
 
-      # 堵塞
-      if self.detect_flag:
-         time.sleep(1)
-
+   def do_stopDetect(self):
       # 反注册回调函数
+      userInfo = b"jay"
       nRet = self.streamSource.contents.detachGrabbingEx(self.streamSource, self.frameCallbackFuncEx, userInfo)
       if (nRet != 0):
          print("detachGrabbingEx fail!")
@@ -461,6 +535,23 @@ class QmyWidget(QWidget):
          print("stopGrabbing fail!")
          return -1
 
+   def do_selectTempArr(self):
+      temp_arr = []
+      for t in self.select_temp:
+         temp = {}
+         temp["model"] = t["model"]
+         temp["size"] = t["size"]
+         temp["color"] = t["color"]
+         temp["width"] = int(t["width"])
+         temp["height"] = int(t["height"])
+         image = numpy.frombuffer(t["image"], dtype=numpy.uint8)
+         temp["image"] = numpy.reshape(image, (temp["height"], temp["width"], -1))
+         kp, des = self.do_createDes(temp["image"])
+         temp["kp"] = kp
+         temp["des"] = des
+         # temp["descriptor"] = numpy.reshape(numpy.frombuffer(t[des_index]), (-1, 128))
+         temp_arr.append(temp)
+      return temp_arr
 
 ##  ==============event处理函数==========================
 
@@ -551,6 +642,9 @@ class QmyWidget(QWidget):
    # 关闭相机
    @pyqtSlot()
    def on_btnCloseCamera_clicked(self):
+      if self.detect_flag:
+         self.do_stopDetect()
+
       nRet = closeCamera(self.camera)
       if (nRet != 0):
          print("closeCamera fail")
@@ -579,11 +673,18 @@ class QmyWidget(QWidget):
       self.ui.btnLinkCamera.setEnabled(True)
       self.ui.btnMakeTemp.setEnabled(False)
       self.ui.btnStartDetect.setEnabled(False)
+      self.ui.btnStopDetect.setEnabled(False)
+      self.ui.btnSetParams.setEnabled(True)
+      self.ui.btnSelectTemp.setEnabled(True)
       self.camera_flag = False
 
    # 开始检测
    @pyqtSlot()
    def on_btnStartDetect_clicked(self):
+      if len(self.select_temp) == 0:
+         QMessageBox.warning(self, "警告", "请选择模板")
+         return
+
       self.ui.btnStartDetect.setEnabled(False)
       self.ui.btnStopDetect.setEnabled(True)
       self.ui.btnSetParams.setEnabled(False)
@@ -598,8 +699,8 @@ class QmyWidget(QWidget):
    # 停止检测
    @pyqtSlot()
    def on_btnStopDetect_clicked(self):
+      self.do_stopDetect()
       self.detect_flag = False
-
       if self.camera_flag:
          self.ui.btnStartDetect.setEnabled(True)
          self.ui.btnMakeTemp.setEnabled(True)
@@ -634,7 +735,12 @@ class QmyWidget(QWidget):
 
       if ret:
          self.select_temp = dialogSelectTemp.get_temp()
-         print(len(self.select_temp))
+         # print(len(self.select_temp))
+         self.temp_arr = self.do_selectTempArr()
+      # print(len(self.temp_arr))
+      # for i in self.temp_arr:
+      #    print(i["des"])
+
 
    # 拍摄模板
    @pyqtSlot()
@@ -650,8 +756,6 @@ class QmyWidget(QWidget):
 
       nImage = self.do_selectROI(image)
       if len(nImage) != 0:
-         des_dic = self.do_createDes(nImage)
-
          dialogMakeTemp = QmyDialogMakeTemp()
          dialogMakeTemp.get_image(nImage)
          dialogMakeTemp.show_image()
@@ -668,7 +772,7 @@ class QmyWidget(QWidget):
                nImage = cv2.cvtColor(nImage, cv2.COLOR_BGR2RGB)
             else:
                nImage = cv2.cvtColor(nImage, cv2.COLOR_GRAY2RGB)
-            ret = self.do_sqlInsert(nImage, model, size, color, des_dic)
+            ret = self.do_sqlInsert(nImage, model, size, color)
 
             if ret == 0:
                # messageBox = QMessageBox(QMessageBox.about, "ok", "数据库插入成功")

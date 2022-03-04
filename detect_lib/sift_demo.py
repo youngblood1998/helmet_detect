@@ -8,8 +8,8 @@ start = time.time()
 MIN_MATCH_COUNT = 10
 
 # 读取图片并转换成黑白图
-im1 = cv2.imread('../data_color/templates/o1.bmp', cv2.IMREAD_COLOR)  # trainImage
-im2 = cv2.imread('../data_color/matches/o1-1.bmp', cv2.IMREAD_COLOR)  # queryImage
+im1 = cv2.imread('../data_color/templates/o2.bmp', cv2.IMREAD_COLOR)  # trainImage
+im2 = cv2.imread('../data_color/matches/o2-2.bmp', cv2.IMREAD_COLOR)  # queryImage
 im1 = cv2.resize(im1, dsize=None, fx=0.3, fy=0.3, interpolation=cv2.INTER_LINEAR)
 im2 = cv2.resize(im2, dsize=None, fx=0.3, fy=0.3, interpolation=cv2.INTER_LINEAR)
 # 直方图归一化，应对白色的头盔
@@ -26,6 +26,9 @@ sift = cv2.SIFT_create(500)
 # 使用特征检测器找特征点和描述子
 kp1, des1 = sift.detectAndCompute(img1, None)
 kp2, des2 = sift.detectAndCompute(img2, None)
+# print(str(kp1))
+# kp = cv2.KeyPoint(str(kp1))
+# print(kp)
 # print("kp1: {}, kp2: {}".format(len(kp1), len(kp2)))
 
 # 这里显示前做一次拷贝，避免影响最后使用
@@ -53,11 +56,13 @@ good = []
 for m, n in matches:
     if m.distance < 0.9 * n.distance:
         good.append(m)
-
+# print(good)
 if len(good) > MIN_MATCH_COUNT:
     # 分别取出匹配成功的queryImage的所有关键点 src_pts 以及trainImage的所有关键点 dst_pts
     src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
     dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+    print(src_pts.shape)
+    print(dst_pts.shape)
     # 使用findHomography并结合RANSAC算法，避免一些错误的点对结果产生影响
     M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
     # 转成一行多列的。描述了对应索引位置的匹配结果是否在结果区域内
