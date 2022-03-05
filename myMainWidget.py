@@ -215,6 +215,7 @@ class QmyWidget(QWidget):
          label = self.ui.label_2
          label.setStyleSheet('color: red')
          self.ui.label_2.setText("无匹配结果")
+      gc.collect()
 
 
    def do_testCamera(self):
@@ -236,11 +237,11 @@ class QmyWidget(QWidget):
       if (nRet != 0):
          print("create TriggerMode Node fail!")
          # 释放相关资源
-         # self.streamSource.contents.release(self.streamSource)
+         streamSource.contents.release(streamSource)
 
          label = self.ui.label
          label.setStyleSheet('color: red')
-         label.setText("构建节点出错")
+         label.setText("构建节点出错，请重试")
 
          return
 
@@ -249,11 +250,11 @@ class QmyWidget(QWidget):
          print("set TriggerMode value [Off] fail!")
          # 释放相关资源
          trigModeEnumNode.contents.release(trigModeEnumNode)
-         # self.streamSource.contents.release(self.streamSource)
+         streamSource.contents.release(streamSource)
 
          label = self.ui.label
          label.setStyleSheet('color: red')
-         label.setText("设置触发模式出错")
+         label.setText("设置触发模式出错，请重试")
 
          return
 
@@ -266,11 +267,11 @@ class QmyWidget(QWidget):
       if (nRet != 0):
          print("startGrabbing fail!")
          # 释放相关资源
-         # self.streamSource.contents.release(self.streamSource)
+         streamSource.contents.release(streamSource)
 
          label = self.ui.label
          label.setStyleSheet('color: red')
-         label.setText("拉流出错")
+         label.setText("拉流出错，请重试")
 
          return
 
@@ -283,11 +284,11 @@ class QmyWidget(QWidget):
          if (nRet != 0):
             print("getFrame fail! Timeout:[1000]ms")
             # 释放相关资源
-            # self.streamSource.contents.release(self.streamSource)
+            streamSource.contents.release(streamSource)
 
             label = self.ui.label
             label.setStyleSheet('color: red')
-            label.setText("主动取图出错")
+            label.setText("主动取图出错，请重试")
 
             return
          else:
@@ -300,11 +301,11 @@ class QmyWidget(QWidget):
             # 释放驱动图像缓存资源
             frame.contents.release(frame)
             # 释放相关资源
-            # self.streamSource.contents.release(self.streamSource)
+            streamSource.contents.release(streamSource)
 
             label = self.ui.label
             label.setStyleSheet('color: red')
-            label.setText("取帧出错")
+            label.setText("取帧出错，请重试")
 
             return
 
@@ -339,6 +340,15 @@ class QmyWidget(QWidget):
                                          cast(rgbBuff, c_void_p), \
                                          byref(rgbSize))
 
+            if (nRet != 0):
+               print("image convert fail! errorCode = " + str(nRet))
+               label = self.ui.label
+               label.setStyleSheet('color: red')
+               label.setText("图像转换出错，请重试")
+               # 释放相关资源
+               streamSource.contents.release(streamSource)
+               return -1
+
             colorByteArray = bytearray(rgbBuff)
             cvImage = numpy.array(colorByteArray).reshape(imageParams.height, imageParams.width, 3)
          # --- end if ---
@@ -369,6 +379,7 @@ class QmyWidget(QWidget):
       nRet = streamSource.contents.stopGrabbing(streamSource)
       if (nRet != 0):
          print("stopGrabbing fail!")
+         streamSource.contents.release(streamSource)
          # 释放相关资源
          return
 
@@ -386,31 +397,32 @@ class QmyWidget(QWidget):
 
       nRet = setSoftTriggerConf(self.camera)
       if ( nRet != 0 ):
-         print(1)
+         print("set soft trigger fail")
          return None
 
       exposure_time = self.settings.value('exposure_time')
       nRet = setExposureTime(self.camera, int(exposure_time))
       if ( nRet != 0 ):
-         print(2)
+         print("set exposure time fail")
          return None
 
       # 开始拉流
       nRet = self.streamSource.contents.startGrabbing(self.streamSource, c_ulonglong(0), \
                                                  c_int(GENICAM_EGrabStrategy.grabStrartegySequential))
       if (nRet != 0):
-         print(3)
+         print("grabbing fail")
          return None
 
       nRet = grabOne(self.camera, self.streamSource)
       if ( nRet != 0 ):
-         print(4)
+         print("grab one fail")
          return None
 
       # 主动取图
       frame = pointer(GENICAM_Frame())
-      nRet = self.streamSource.contents.getFrame(self.streamSource, byref(frame), c_uint(10000))
+      nRet = self.streamSource.contents.getFrame(self.streamSource, byref(frame), c_uint(1000))
       if (nRet != 0):
+         print("get frame fail")
          return None
       else:
          print("SoftTrigger getFrame success BlockId = " + str(frame.contents.getBlockId(frame)))
@@ -418,6 +430,8 @@ class QmyWidget(QWidget):
 
       nRet = frame.contents.valid(frame)
       if (nRet != 0):
+         frame.contents.release(frame)
+         print("frame is not valid")
          return None
 
          # 将裸数据图像拷出
@@ -546,17 +560,18 @@ class QmyWidget(QWidget):
          return -1
 
    def do_stopDetect(self):
-      # 反注册回调函数
-      userInfo = b"jay"
-      nRet = self.streamSource.contents.detachGrabbingEx(self.streamSource, self.UnGrabbingFrameCallbackFuncEx, userInfo)
-      if (nRet != 0):
-         print("detachGrabbingEx fail!")
-         return -1
 
       # 停止拉流
       nRet = self.streamSource.contents.stopGrabbing(self.streamSource)
       if (nRet != 0):
          print("stopGrabbing fail!")
+         return -1
+
+      # 反注册回调函数
+      userInfo = b"jay"
+      nRet = self.streamSource.contents.detachGrabbingEx(self.streamSource, self.UnGrabbingFrameCallbackFuncEx, userInfo)
+      if (nRet != 0):
+         print("detachGrabbingEx fail!")
          return -1
 
    def do_selectTempArr(self):
@@ -578,7 +593,20 @@ class QmyWidget(QWidget):
       return temp_arr
 
 ##  ==============event处理函数==========================
-
+   def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+      ret = QMessageBox.warning(self, "提示", "确定退出吗？", QMessageBox.Yes | QMessageBox.No)
+      if ret == QMessageBox.Yes:
+         if self.detect_flag:
+            self.do_stopDetect()
+            print(1)
+         if self.camera_flag:
+            closeCamera(self.camera)
+            print(2)
+            # 释放相关资源
+            self.streamSource.contents.release(self.streamSource)
+         a0.accept()
+      else:
+         a0.ignore()
 
 ##  ==========由connectSlotsByName()自动连接的槽函数============
    # 检测相机
@@ -636,6 +664,10 @@ class QmyWidget(QWidget):
             lab.setStyleSheet('color: green')
             lab.setText("成功连接相机")
 
+            lab = self.ui.labCloseCamera
+            lab.setStyleSheet('color: black')
+            lab.setText("无")
+
             # 按钮的使能和不使能
             self.ui.btnLinkCamera.setEnabled(False)
             # self.ui.btnDetectCamera.setEnabled(False)
@@ -673,7 +705,7 @@ class QmyWidget(QWidget):
       if (nRet != 0):
          print("closeCamera fail")
          # 释放相关资源
-         # self.streamSource.contents.release(self.streamSource)
+         self.streamSource.contents.release(self.streamSource)
 
          lab = self.ui.labCloseCamera
          lab.setStyleSheet('color: red')
@@ -716,8 +748,8 @@ class QmyWidget(QWidget):
       self.ui.btnMakeTemp.setEnabled(False)
       self.ui.btnTestCamera.setEnabled(False)
 
-      self.detect_flag = True
       self.do_detect()
+      self.detect_flag = True
 
 
    # 停止检测
@@ -725,6 +757,19 @@ class QmyWidget(QWidget):
    def on_btnStopDetect_clicked(self):
       self.do_stopDetect()
       self.detect_flag = False
+
+      nRet = closeCamera(self.camera)
+      if (nRet != 0):
+         print("closeCamera fail")
+      self.streamSource.contents.release(self.streamSource)
+
+      nRet = openCamera(self.camera)
+      streamSourceInfo = GENICAM_StreamSourceInfo()
+      streamSourceInfo.channelId = 0
+      streamSourceInfo.pCamera = pointer(self.camera)
+      self.streamSource = pointer(GENICAM_StreamSource())
+      nRet = GENICAM_createStreamSource(pointer(streamSourceInfo), byref(self.streamSource))
+
       if self.camera_flag:
          self.ui.btnStartDetect.setEnabled(True)
          self.ui.btnMakeTemp.setEnabled(True)
@@ -775,7 +820,7 @@ class QmyWidget(QWidget):
 
       image = self.do_grabOne()
       if image is None:
-         messageBox = QMessageBox(QMessageBox.Warning, "warning", "请重试")
+         messageBox = QMessageBox(QMessageBox.Warning, "warning", "请关闭相机后连接相机并重试")
          messageBox.exec()
          if self.camera_flag:
             self.ui.btnTestCamera.setEnabled(True)
@@ -825,3 +870,4 @@ if __name__ == "__main__":  # 用于当前窗体测试
    form.show()
 
    sys.exit(app.exec_())
+   os._exit(0)
