@@ -73,7 +73,8 @@ class QmyWidget(QWidget):
             self.settings.setValue(param_name, self.default_params[param_name])
       self.settings = QSettings("./config.ini", QSettings.IniFormat)
 
-      self.frameCallbackFuncEx = callbackFuncEx(self.test_callback)
+      self.GrabbingFrameCallbackFuncEx = callbackFuncEx(self.test_callback)
+      self.UnGrabbingFrameCallbackFuncEx = callbackFuncEx(self.test_callback)
 
 ##  ==============自定义功能函数========================
    def test_callback(self, frame, userInfo):
@@ -217,6 +218,14 @@ class QmyWidget(QWidget):
 
 
    def do_testCamera(self):
+      # 创建流对象
+      streamSourceInfo = GENICAM_StreamSourceInfo()
+      streamSourceInfo.channelId = 0
+      streamSourceInfo.pCamera = pointer(self.camera)
+
+      streamSource = pointer(GENICAM_StreamSource())
+      nRet = GENICAM_createStreamSource(pointer(streamSourceInfo), byref(streamSource))
+
       # 通用属性设置:设置触发模式为off --根据属性类型，直接构造属性节点。如触发模式是 enumNode，构造enumNode节点
       # 自由拉流：TriggerMode 需为 off
       trigModeEnumNode = pointer(GENICAM_EnumNode())
@@ -252,7 +261,7 @@ class QmyWidget(QWidget):
       trigModeEnumNode.contents.release(trigModeEnumNode)
 
       # 开始拉流
-      nRet = self.streamSource.contents.startGrabbing(self.streamSource, c_ulonglong(0), \
+      nRet = streamSource.contents.startGrabbing(streamSource, c_ulonglong(0), \
                                                  c_int(GENICAM_EGrabStrategy.grabStrartegySequential))
       if (nRet != 0):
          print("startGrabbing fail!")
@@ -270,7 +279,7 @@ class QmyWidget(QWidget):
       while self.isGrab:
          # 主动取图
          frame = pointer(GENICAM_Frame())
-         nRet = self.streamSource.contents.getFrame(self.streamSource, byref(frame), c_uint(1000))
+         nRet = streamSource.contents.getFrame(streamSource, byref(frame), c_uint(1000))
          if (nRet != 0):
             print("getFrame fail! Timeout:[1000]ms")
             # 释放相关资源
@@ -357,33 +366,45 @@ class QmyWidget(QWidget):
       label.setText("未开始测试")
 
       # 停止拉流
-      nRet = self.streamSource.contents.stopGrabbing(self.streamSource)
+      nRet = streamSource.contents.stopGrabbing(streamSource)
       if (nRet != 0):
          print("stopGrabbing fail!")
          # 释放相关资源
          return
 
-      self.streamSource.contents.release(self.streamSource)
+      streamSource.contents.release(streamSource)
 
 
    def do_grabOne(self):
+      # 创建流对象
+      # streamSourceInfo = GENICAM_StreamSourceInfo()
+      # streamSourceInfo.channelId = 0
+      # streamSourceInfo.pCamera = pointer(self.camera)
+      #
+      # streamSource = pointer(GENICAM_StreamSource())
+      # nRet = GENICAM_createStreamSource(pointer(streamSourceInfo), byref(streamSource))
+
       nRet = setSoftTriggerConf(self.camera)
       if ( nRet != 0 ):
+         print(1)
          return None
 
       exposure_time = self.settings.value('exposure_time')
       nRet = setExposureTime(self.camera, int(exposure_time))
       if ( nRet != 0 ):
+         print(2)
          return None
 
       # 开始拉流
       nRet = self.streamSource.contents.startGrabbing(self.streamSource, c_ulonglong(0), \
                                                  c_int(GENICAM_EGrabStrategy.grabStrartegySequential))
       if (nRet != 0):
+         print(3)
          return None
 
-      nRet = grabOne(self.camera)
+      nRet = grabOne(self.camera, self.streamSource)
       if ( nRet != 0 ):
+         print(4)
          return None
 
       # 主动取图
@@ -437,6 +458,9 @@ class QmyWidget(QWidget):
       nRet = self.streamSource.contents.stopGrabbing(self.streamSource)
       if (nRet != 0):
          return None
+
+      # # 释放相关资源
+      # streamSource.contents.release(streamSource)
 
       return cvImage
 
@@ -495,7 +519,7 @@ class QmyWidget(QWidget):
    def do_detect(self):
       # 注册拉流回调函数
       userInfo = b"jay"
-      nRet = self.streamSource.contents.attachGrabbingEx(self.streamSource, self.frameCallbackFuncEx, userInfo)
+      nRet = self.streamSource.contents.attachGrabbingEx(self.streamSource, self.GrabbingFrameCallbackFuncEx, userInfo)
       if (nRet != 0):
          print("attachGrabbingEx fail!")
          return -1
@@ -524,7 +548,7 @@ class QmyWidget(QWidget):
    def do_stopDetect(self):
       # 反注册回调函数
       userInfo = b"jay"
-      nRet = self.streamSource.contents.detachGrabbingEx(self.streamSource, self.frameCallbackFuncEx, userInfo)
+      nRet = self.streamSource.contents.detachGrabbingEx(self.streamSource, self.UnGrabbingFrameCallbackFuncEx, userInfo)
       if (nRet != 0):
          print("detachGrabbingEx fail!")
          return -1
@@ -753,6 +777,11 @@ class QmyWidget(QWidget):
       if image is None:
          messageBox = QMessageBox(QMessageBox.Warning, "warning", "请重试")
          messageBox.exec()
+         if self.camera_flag:
+            self.ui.btnTestCamera.setEnabled(True)
+            self.ui.btnMakeTemp.setEnabled(True)
+            self.ui.btnStartDetect.setEnabled(True)
+         return
 
       nImage = self.do_selectROI(image)
       if len(nImage) != 0:

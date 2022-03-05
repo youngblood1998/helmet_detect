@@ -376,16 +376,16 @@ def enumCameras():
         print("cameraCnt: " + str(cameraCnt.value))
         return cameraCnt.value, cameraList
 
-def grabOne(camera):
+def grabOne(camera, streamSource):
     # 创建流对象
     streamSourceInfo = GENICAM_StreamSourceInfo()
     streamSourceInfo.channelId = 0
     streamSourceInfo.pCamera = pointer(camera)
-      
+
     streamSource = pointer(GENICAM_StreamSource())
     nRet = GENICAM_createStreamSource(pointer(streamSourceInfo), byref(streamSource))
     if ( nRet != 0 ):
-        print("create StreamSource fail!")     
+        print("create StreamSource fail!")
         return -1
     
     # 创建control节点
