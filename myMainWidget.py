@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
 
 from ImageConvert import *
 from MVSDK import *
-from camera_lib import enumCameras, openCamera, closeCamera, setSoftTriggerConf, setExposureTime, grabOne, \
+from camera_lib import enumCameras, openCamera, closeCamera, setSoftTriggerConf, setExposureTime,  \
    setLineTriggerConf
 from detect_lib.sift_flann_new import SiftFlann
 from myDialogMakeTemp import QmyDialogMakeTemp
@@ -77,6 +77,33 @@ class QmyWidget(QWidget):
       self.UnGrabbingFrameCallbackFuncEx = callbackFuncEx(self.test_callback)
 
 ##  ==============自定义功能函数========================
+   def grabOne(self):
+      # 创建control节点
+      acqCtrlInfo = GENICAM_AcquisitionControlInfo()
+      acqCtrlInfo.pCamera = pointer(self.camera)
+      acqCtrl = pointer(GENICAM_AcquisitionControl())
+      nRet = GENICAM_createAcquisitionControl(pointer(acqCtrlInfo), byref(acqCtrl))
+      if (nRet != 0):
+         print("create AcquisitionControl fail!")
+         return -1
+
+      # 执行一次软触发
+      trigSoftwareCmdNode = acqCtrl.contents.triggerSoftware(acqCtrl)
+      nRet = trigSoftwareCmdNode.execute(byref(trigSoftwareCmdNode))
+      if (nRet != 0):
+         print("Execute triggerSoftware fail!")
+         # 释放相关资源
+         trigSoftwareCmdNode.release(byref(trigSoftwareCmdNode))
+         acqCtrl.contents.release(acqCtrl)
+         return -1
+
+         # 释放相关资源
+      trigSoftwareCmdNode.release(byref(trigSoftwareCmdNode))
+      acqCtrl.contents.release(acqCtrl)
+
+      return 0
+
+
    def test_callback(self, frame, userInfo):
       # if not self.detect_flag:
       #    return
@@ -413,7 +440,8 @@ class QmyWidget(QWidget):
          print("grabbing fail")
          return None
 
-      nRet = grabOne(self.camera, self.streamSource)
+      # nRet = grabOne(self.camera, self.streamSource)
+      nRet = self.grabOne()
       if ( nRet != 0 ):
          print("grab one fail")
          return None

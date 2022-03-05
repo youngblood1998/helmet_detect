@@ -376,7 +376,7 @@ def enumCameras():
         print("cameraCnt: " + str(cameraCnt.value))
         return cameraCnt.value, cameraList
 
-def grabOne(camera, streamSource):
+def grabOne(camera):
     # 创建流对象
     streamSourceInfo = GENICAM_StreamSourceInfo()
     streamSourceInfo.channelId = 0
