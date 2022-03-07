@@ -29,9 +29,12 @@ class QmyDialogMakeTemp(QDialog):
       self.ui.setupUi(self)  # 构造UI界面
 
 ##  ============自定义功能函数========================
+   # 获得图片
    def get_image(self, image):
       self.image = image
 
+
+   # 展示图片
    def show_image(self):
       image = self.image
       # image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)

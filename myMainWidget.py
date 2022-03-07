@@ -7,7 +7,6 @@ import os
 import sys
 import sqlite3
 import time
-
 import cv2
 import numpy
 from PyQt5 import QtGui
@@ -40,19 +39,18 @@ class QmyWidget(QWidget):
       self.ui = Ui_Widget()  # 创建UI对象
       self.ui.setupUi(self)  # 构造UI界面
 
-      self.camera_flag = False
-      self.detect_flag = False
+      self.camera_flag = False   # 相机开关标志
+      self.detect_flag = False   # 检测开关标志
 
       # 将一部分按钮设置成非使能状态
       self.ui.btnLinkCamera.setEnabled(False)
       self.ui.btnTestCamera.setEnabled(False)
       self.ui.btnCloseCamera.setEnabled(False)
-
       self.ui.btnStartDetect.setEnabled(False)
       self.ui.btnStopDetect.setEnabled(False)
-
       self.ui.btnMakeTemp.setEnabled(False)
 
+      # 默认参数
       self.default_params = {
          'exposure_time': 10000,
          'trigger_delay': 1000000,
@@ -65,18 +63,23 @@ class QmyWidget(QWidget):
          'ratio': 0.9
       }
 
-      self.select_temp = []
+      self.select_temp = []   # 选择的模板
+      self.temp_arr = []   # 选择的模板(包含关键点和描述子)
 
+      # 有无配置文件，没有的话创建并设置默认参数
       if not os.path.exists('./config.ini'):
          self.settings = QSettings("./config.ini", QSettings.IniFormat)
          for param_name in self.default_params:
             self.settings.setValue(param_name, self.default_params[param_name])
       self.settings = QSettings("./config.ini", QSettings.IniFormat)
 
+      # 相机回调函数
       self.GrabbingFrameCallbackFuncEx = callbackFuncEx(self.test_callback)
       self.UnGrabbingFrameCallbackFuncEx = callbackFuncEx(self.test_callback)
 
+
 ##  ==============自定义功能函数========================
+   # 软触发得到一张图，用于创建模板
    def grabOne(self):
       # 创建control节点
       acqCtrlInfo = GENICAM_AcquisitionControlInfo()
@@ -97,17 +100,14 @@ class QmyWidget(QWidget):
          acqCtrl.contents.release(acqCtrl)
          return -1
 
-         # 释放相关资源
+      # 释放相关资源
       trigSoftwareCmdNode.release(byref(trigSoftwareCmdNode))
       acqCtrl.contents.release(acqCtrl)
-
       return 0
 
 
+   # 回调函数，用于测试相机
    def test_callback(self, frame, userInfo):
-      # if not self.detect_flag:
-      #    return
-
       nRet = frame.contents.valid(frame)
       if (nRet != 0):
          print("frame is invalid!")
@@ -164,11 +164,12 @@ class QmyWidget(QWidget):
                                  cvtImage.shape[1] * 3,
                                  QtGui.QImage.Format.Format_RGB888)
 
-         w = cvtImage.shape[1]
-         h = cvtImage.shape[0]
-         W = self.ui.labInput.size().width()
-         H = self.ui.labInput.size().height()
+         w = cvtImage.shape[1]   # 图像宽度
+         h = cvtImage.shape[0]   # 图像高度
+         W = self.ui.labInput.size().width()    # 显示框的宽度
+         H = self.ui.labInput.size().height()   # 显示框的高度
 
+         # 自适应图像宽高
          if float(H) / h > float(W) / w:
             self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToWidth(W))
          else:
@@ -176,6 +177,7 @@ class QmyWidget(QWidget):
       except Exception as e:
          QMessageBox.warning(self, "警告", "图片输入出错")
 
+      # 清空输入图像和输出图像
       self.ui.labOutput.clear()
       self.ui.label_2.clear()
 
@@ -189,11 +191,13 @@ class QmyWidget(QWidget):
                        ratio=float(self.settings.value("ratio"))
                        )
       # kp2, des2 = self.do_createDes(cvtImage)
+      # 返回结果，模板、方向、画出匹配框的图像
       result, dir, imageDraw = sift.match(self.temp_arr, cvtImage)
 
+      # 匹配结果不为空，则显示输入输出图像
       if not result is None:
          print(result["model"])
-
+         # 显示画出匹配框的图像
          try:
             qt_image = QtGui.QImage(imageDraw.data,
                                     imageDraw.shape[1],
@@ -212,7 +216,7 @@ class QmyWidget(QWidget):
                self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
          except Exception as e:
             QMessageBox.warning(self, "警告", "图片输入出错")
-
+         # 显示输出图像
          image = result["image"]
          try:
             qt_image = QtGui.QImage(image.data,
@@ -233,6 +237,7 @@ class QmyWidget(QWidget):
          except Exception as e:
             QMessageBox.warning(self, "警告", "图片输入出错")
 
+         # 显示输出信息
          label = self.ui.label_2
          label.setStyleSheet('color: green')
          s = "前" if dir==0 else "后"
@@ -245,6 +250,7 @@ class QmyWidget(QWidget):
       gc.collect()
 
 
+   # 测试相机
    def do_testCamera(self):
       # 创建流对象
       streamSourceInfo = GENICAM_StreamSourceInfo()
@@ -380,7 +386,8 @@ class QmyWidget(QWidget):
             cvImage = numpy.array(colorByteArray).reshape(imageParams.height, imageParams.width, 3)
          # --- end if ---
 
-         cvImage = cv2.resize(cvImage, dsize=None, fx=0.3, fy=0.3, interpolation=cv2.INTER_LINEAR)  # 自己加的
+         # 将相机内容缩小显示
+         cvImage = cv2.resize(cvImage, dsize=None, fx=0.3, fy=0.3, interpolation=cv2.INTER_LINEAR)
 
          label = self.ui.label
          label.setStyleSheet('color: green')
@@ -395,7 +402,6 @@ class QmyWidget(QWidget):
             self.isGrab = False
             break
             # --- end while ---
-
       cv2.destroyAllWindows()
 
       label = self.ui.label
@@ -410,9 +416,11 @@ class QmyWidget(QWidget):
          # 释放相关资源
          return
 
+      # 释放相关资源
       streamSource.contents.release(streamSource)
 
 
+   # 软触发得到一张图并返回
    def do_grabOne(self):
       # 创建流对象
       # streamSourceInfo = GENICAM_StreamSourceInfo()
@@ -422,11 +430,13 @@ class QmyWidget(QWidget):
       # streamSource = pointer(GENICAM_StreamSource())
       # nRet = GENICAM_createStreamSource(pointer(streamSourceInfo), byref(streamSource))
 
+      # 设置软触发
       nRet = setSoftTriggerConf(self.camera)
       if ( nRet != 0 ):
          print("set soft trigger fail")
          return None
 
+      # 设置曝光时间
       exposure_time = self.settings.value('exposure_time')
       nRet = setExposureTime(self.camera, int(exposure_time))
       if ( nRet != 0 ):
@@ -441,6 +451,7 @@ class QmyWidget(QWidget):
          return None
 
       # nRet = grabOne(self.camera, self.streamSource)
+      # 执行软触发
       nRet = self.grabOne()
       if ( nRet != 0 ):
          print("grab one fail")
@@ -462,7 +473,7 @@ class QmyWidget(QWidget):
          print("frame is not valid")
          return None
 
-         # 将裸数据图像拷出
+      # 将裸数据图像拷出
       imageSize = frame.contents.getImageSize(frame)
       buffAddr = frame.contents.getImage(frame)
       frameBuff = c_buffer(b'\0', imageSize)
@@ -497,6 +508,7 @@ class QmyWidget(QWidget):
          colorByteArray = bytearray(rgbBuff)
          cvImage = numpy.array(colorByteArray).reshape(convertParams.height, convertParams.width, 3)
 
+      # 停止拉流
       nRet = self.streamSource.contents.stopGrabbing(self.streamSource)
       if (nRet != 0):
          return None
@@ -507,6 +519,7 @@ class QmyWidget(QWidget):
       return cvImage
 
 
+   # 模板感兴趣区域选取
    def do_selectROI(self, image):
       dsize = 0.25
       rImage = cv2.resize(image, dsize=None, fx=dsize, fy=dsize, interpolation=cv2.INTER_LINEAR)
@@ -520,7 +533,9 @@ class QmyWidget(QWidget):
       return nImage
 
 
+   # 生成关键点和描述子
    def do_createDes(self, im1):
+      # 缩放图像
       di = float(self.settings.value("resize_times"))
       img1 = cv2.resize(im1, dsize=None, fx=di, fy=di, interpolation=cv2.INTER_LINEAR)
       # 直方图归一化，应对白色的头盔
@@ -536,28 +551,33 @@ class QmyWidget(QWidget):
       return kp1, des1
 
 
+   # 执行模板的数据库插入
    def do_sqlInsert(self, image, model, size, color):
+      # 判断有无数据库，没有的话提示
       if not os.path.exists('./helmetDB.db3'):
          messageBox = QMessageBox(QMessageBox.Warning, "warning", "没有数据库文件")
          messageBox.exec()
          return -1
+
+      # 连接数据库
       conn = sqlite3.connect('helmetDB.db3')
       cursor = conn.cursor()
 
+      # 执行插入
       sql = 'INSERT into helmet values (?,?,?,?,?,?,?)'
-
       x = [model, size, color, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), image.shape[1], image.shape[0],
            image.tobytes()]
-      # for i in x:
-      #    print(type(i))
       cursor.execute(sql, x)
       conn.commit()
+
+      # 关闭数据库
       cursor.close()
       conn.close()
 
       return 0
 
 
+   # 检测，通过回调函数
    def do_detect(self):
       # 注册拉流回调函数
       userInfo = b"jay"
@@ -587,6 +607,8 @@ class QmyWidget(QWidget):
          print("startGrabbing fail!")
          return -1
 
+
+   # 停止检测
    def do_stopDetect(self):
 
       # 停止拉流
@@ -602,8 +624,12 @@ class QmyWidget(QWidget):
          print("detachGrabbingEx fail!")
          return -1
 
+
+   # 返回生成的模板字典数组
    def do_selectTempArr(self):
       temp_arr = []
+
+      # 模板字典
       for t in self.select_temp:
          temp = {}
          temp["model"] = t["model"]
@@ -620,9 +646,12 @@ class QmyWidget(QWidget):
          temp_arr.append(temp)
       return temp_arr
 
+
 ##  ==============event处理函数==========================
+   # 关闭事件
    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
       ret = QMessageBox.warning(self, "提示", "确定退出吗？", QMessageBox.Yes | QMessageBox.No)
+      # 是否关闭，是则停止检测关闭相机
       if ret == QMessageBox.Yes:
          if self.detect_flag:
             self.do_stopDetect()
@@ -635,6 +664,7 @@ class QmyWidget(QWidget):
          a0.accept()
       else:
          a0.ignore()
+
 
 ##  ==========由connectSlotsByName()自动连接的槽函数============
    # 检测相机
@@ -670,6 +700,7 @@ class QmyWidget(QWidget):
    # 连接相机
    @pyqtSlot()
    def on_btnLinkCamera_clicked(self):
+      # 打开相机
       nRet = openCamera(self.camera)
       if (nRet != 0):
          lab = self.ui.labLinkCamera
@@ -703,20 +734,21 @@ class QmyWidget(QWidget):
             self.ui.btnCloseCamera.setEnabled(True)
             self.ui.btnStartDetect.setEnabled(True)
             self.ui.btnMakeTemp.setEnabled(True)
-
+            # 设置相机开关标志
             self.camera_flag = True
 
 
    # 测试相机
    @pyqtSlot()
    def on_btnTestCamera_clicked(self):
+      # 按钮置为不使能
       self.ui.btnTestCamera.setEnabled(False)
       self.ui.btnCloseCamera.setEnabled(False)
       self.ui.btnStartDetect.setEnabled(False)
       self.ui.btnMakeTemp.setEnabled(False)
-
+      # 测试相机
       self.do_testCamera()
-
+      # 按钮使能
       self.ui.btnTestCamera.setEnabled(True)
       self.ui.btnCloseCamera.setEnabled(True)
       self.ui.btnStartDetect.setEnabled(True)
@@ -726,9 +758,10 @@ class QmyWidget(QWidget):
    # 关闭相机
    @pyqtSlot()
    def on_btnCloseCamera_clicked(self):
+      # 如果在检测，则停止
       if self.detect_flag:
          self.do_stopDetect()
-
+      # 关闭相机
       nRet = closeCamera(self.camera)
       if (nRet != 0):
          print("closeCamera fail")
@@ -751,7 +784,7 @@ class QmyWidget(QWidget):
       lab = self.ui.labCloseCamera
       lab.setStyleSheet('color: green')
       lab.setText("关闭相机成功")
-
+      # 按钮
       self.ui.btnCloseCamera.setEnabled(False)
       self.ui.btnTestCamera.setEnabled(False)
       self.ui.btnLinkCamera.setEnabled(True)
@@ -760,22 +793,25 @@ class QmyWidget(QWidget):
       self.ui.btnStopDetect.setEnabled(False)
       self.ui.btnSetParams.setEnabled(True)
       self.ui.btnSelectTemp.setEnabled(True)
+      # 相机开关标志
       self.camera_flag = False
+
 
    # 开始检测
    @pyqtSlot()
    def on_btnStartDetect_clicked(self):
+      # 没有模板则提示
       if len(self.select_temp) == 0:
          QMessageBox.warning(self, "警告", "请选择模板")
          return
-
+      # 按钮
       self.ui.btnStartDetect.setEnabled(False)
       self.ui.btnStopDetect.setEnabled(True)
       self.ui.btnSetParams.setEnabled(False)
       self.ui.btnSelectTemp.setEnabled(False)
       self.ui.btnMakeTemp.setEnabled(False)
       self.ui.btnTestCamera.setEnabled(False)
-
+      # 检测并设置标志
       self.do_detect()
       self.detect_flag = True
 
@@ -783,21 +819,22 @@ class QmyWidget(QWidget):
    # 停止检测
    @pyqtSlot()
    def on_btnStopDetect_clicked(self):
+      # 停止检测并设置标志
       self.do_stopDetect()
       self.detect_flag = False
-
+      # 关闭相机并释放资源
       nRet = closeCamera(self.camera)
       if (nRet != 0):
          print("closeCamera fail")
       self.streamSource.contents.release(self.streamSource)
-
+      # 重新打开相机
       nRet = openCamera(self.camera)
       streamSourceInfo = GENICAM_StreamSourceInfo()
       streamSourceInfo.channelId = 0
       streamSourceInfo.pCamera = pointer(self.camera)
       self.streamSource = pointer(GENICAM_StreamSource())
       nRet = GENICAM_createStreamSource(pointer(streamSourceInfo), byref(self.streamSource))
-
+      # 判断相机是否打开变换按钮
       if self.camera_flag:
          self.ui.btnStartDetect.setEnabled(True)
          self.ui.btnMakeTemp.setEnabled(True)
@@ -810,26 +847,37 @@ class QmyWidget(QWidget):
    # 设置参数
    @pyqtSlot()
    def on_btnSetParams_clicked(self):
+      # 跳出参数窗口
       dialogSetParams = QmyDialogSetParams()
       dialogSetParams.set_default_params(self.default_params)
       dialogSetParams.set_init_params()
       ret = dialogSetParams.exec()
-
+      # 根据选择决定是否更改参数
       if ret:
          new_params = dialogSetParams.get_new_params()
          self.settings = QSettings("./config.ini", QSettings.IniFormat)
+         old_resize = self.settings.value("resize_times")
+         new_resize = new_params["resize_times"]
          for param_name in new_params:
             self.settings.setValue(param_name, new_params[param_name])
+      # 判断resize_times是否改变确定是否更改关键点和描述子
+      if round(float(old_resize), 1) != round(new_resize, 1) and len(self.temp_arr) != 0:
+         print(1)
+         for t in self.temp_arr:
+            kp, des = self.do_createDes(t["image"])
+            t["kp"] = kp
+            t["des"] = des
 
 
    # 选择模板
    @pyqtSlot()
    def on_btnSelectTemp_clicked(self):
+      # 跳出选择模板窗口
       dialogSelectTemp = QmyDialogSelectTemp()
       dialogSelectTemp.set_temp(self.select_temp)
       dialogSelectTemp.do_showSelectTemp()
       ret = dialogSelectTemp.exec()
-
+      # 根据选择的模板生成数组
       if ret:
          self.select_temp = dialogSelectTemp.get_temp()
          # print(len(self.select_temp))
@@ -842,10 +890,11 @@ class QmyWidget(QWidget):
    # 拍摄模板
    @pyqtSlot()
    def on_btnMakeTemp_clicked(self):
+      # 按钮
       self.ui.btnTestCamera.setEnabled(False)
       self.ui.btnMakeTemp.setEnabled(False)
       self.ui.btnStartDetect.setEnabled(False)
-
+      # 获得一张图
       image = self.do_grabOne()
       if image is None:
          messageBox = QMessageBox(QMessageBox.Warning, "warning", "请关闭相机后连接相机并重试")
@@ -855,7 +904,7 @@ class QmyWidget(QWidget):
             self.ui.btnMakeTemp.setEnabled(True)
             self.ui.btnStartDetect.setEnabled(True)
          return
-
+      # 选择感兴趣区域
       nImage = self.do_selectROI(image)
       if len(nImage) != 0:
          dialogMakeTemp = QmyDialogMakeTemp()
@@ -886,6 +935,7 @@ class QmyWidget(QWidget):
          self.ui.btnTestCamera.setEnabled(True)
          self.ui.btnMakeTemp.setEnabled(True)
          self.ui.btnStartDetect.setEnabled(True)
+
 
 ##  =============自定义槽函数===============================
 

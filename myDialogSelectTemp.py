@@ -36,19 +36,25 @@ class QmyDialogSelectTemp(QDialog):
       self.ui.btnSave.setEnabled(False)
       self.ui.btnRevert.setEnabled(False)
 
-      self.selectedTemp = []
+      self.selectedTemp = []  # 选择的模板数组
 
-      self.do_showAllTemp()
-      self.do_showSelectTemp()
+      self.do_showAllTemp()   # 展示所有模板
+      self.do_showSelectTemp()   # 展示选择的模板
+
 
 ##  ============自定义功能函数========================
+   # 已选择的模板
    def set_temp(self, select_temp):
       self.selectedTemp = copy.deepcopy(select_temp)
       # print(len(self.selectedTemp[0]))
 
+
+   # 返回选择的模板
    def get_temp(self):
       return copy.deepcopy(self.selectedTemp)
 
+
+   # 获得列名称
    def __getFieldNames(self):
       emptyRec = self.tableModel.record()     #获取空记录，只有字段名
       self.fldNum={}   #字段名与序号的字典
@@ -59,6 +65,7 @@ class QmyDialogSelectTemp(QDialog):
       # print (self.fldNum)
 
 
+   # 打开表格
    def __openTable(self):
       self.tableModel = QSqlTableModel(self, self.db)
       self.tableModel.setTable("helmet")
@@ -67,8 +74,9 @@ class QmyDialogSelectTemp(QDialog):
       if self.tableModel.select() == False:
          QMessageBox.critical(self, "出错信息", "打开数据表错误，错误信息\n" + self.tableModel.lastError().text())
          return
+      # 获得字段
       self.__getFieldNames()
-
+      # 设置列名
       self.tableModel.setHeaderData(self.fldNum["model"], Qt.Horizontal, "型号")
       self.tableModel.setHeaderData(self.fldNum["size"], Qt.Horizontal, "尺寸")
       self.tableModel.setHeaderData(self.fldNum["color"], Qt.Horizontal, "颜色")
@@ -100,9 +108,12 @@ class QmyDialogSelectTemp(QDialog):
       # for i in range(1, 11):
       #    self.ui.tableViewAllTemp.setColumnHidden(self.fldNum["descriptor_{}".format(i)], True)  # 隐藏列
 
+
+   # 刷新表格(已选模板)
    def __freshTable(self):
       self.ui.tableWidgetSelectTemp.setRowCount(0)
       self.ui.tableWidgetSelectTemp.clearContents()
+      # 展示已选模板
       for t in self.selectedTemp:
          column = 0
          row = self.ui.tableWidgetSelectTemp.rowCount()
@@ -123,11 +134,14 @@ class QmyDialogSelectTemp(QDialog):
          self.ui.btnClear.setEnabled(False)
 
 
+   # 展示所有模板
    def do_showAllTemp(self):
+      # 判断数据库是否存在
       if not os.path.exists('./helmetDB.db3'):
          messageBox = QMessageBox(QMessageBox.Warning, "warning", "没有数据库文件")
          messageBox.exec()
          return -1
+      # 打开数据库并展示
       self.db = QSqlDatabase.addDatabase("QSQLITE")
       self.db.setDatabaseName('./helmetDB.db3')
       if self.db.open():
@@ -136,37 +150,44 @@ class QmyDialogSelectTemp(QDialog):
          QMessageBox.warning(self, "错误", "打开数据库失败")
 
 
+   # 展示选择的模板
    def do_showSelectTemp(self):
+      # 设置表格列名
       self.ui.tableWidgetSelectTemp.setColumnCount(6)
       headerText = ["型号", "尺寸", "颜色", "日期", "图片宽", "图片高"]
       for i in range(len(headerText)):
          headerItem = QTableWidgetItem(headerText[i])
          self.ui.tableWidgetSelectTemp.setHorizontalHeaderItem(i, headerItem)
-
+      # 刷新表格
       self.__freshTable()
 
       self.ui.tableWidgetSelectTemp.currentItemChanged.connect(self.do_currentRowChanged_2)
+
 
 ##  ===========event处理函数==========================
 
 
 ##  ========由connectSlotsByName()自动连接的槽函数=========
+   # 保存更改
    @pyqtSlot()
    def on_btnSave_clicked(self):
       res = self.tableModel.submitAll()
       if res == False:
          QMessageBox.information(self, "消息", "数据保存错误，出错信息\n"+self.tableModel.lastError().text())
       else:
-
          self.ui.btnSave.setEnabled(False)
          self.ui.btnRevert.setEnabled(False)
 
+
+   # 撤销更改
    @pyqtSlot()
    def on_btnRevert_clicked(self):
       self.tableModel.revertAll()
       self.ui.btnSave.setEnabled(False)
       self.ui.btnRevert.setEnabled(False)
 
+
+   # 删除模板
    @pyqtSlot()
    def on_btnDelete_clicked(self):
       if self.tableModel.isDirty():
@@ -180,19 +201,25 @@ class QmyDialogSelectTemp(QDialog):
          else:
             return
 
+
+   # 过滤模板
    @pyqtSlot()
    def on_btnSearch_clicked(self):
       self.tableModel.setFilter("model like '%{}%'".format(self.ui.lineEditSearch.text()))
 
+
+   # 选择模板
    @pyqtSlot()
    def on_btnSelect_clicked(self):
       temp = {}
       for i in self.fldNum:
          temp[i] = self.curRec.value(i)
       self.selectedTemp.append(temp)
-
+      # 刷新表格
       self.__freshTable()
 
+
+   # 移除已选模板
    @pyqtSlot()
    def on_btnRemove_clicked(self):
       curRow = self.ui.tableWidgetSelectTemp.currentRow()
@@ -216,25 +243,33 @@ class QmyDialogSelectTemp(QDialog):
       #       self.selectedTemp.pop(i)
       #       break
       self.selectedTemp.pop(curRow)
+      # 刷新
       self.__freshTable()
 
+
+   # 清空选择
    @pyqtSlot()
    def on_btnClear_clicked(self):
       self.ui.tableWidgetSelectTemp.setRowCount(0)
       self.ui.tableWidgetSelectTemp.clearContents()
       self.selectedTemp.clear()
 
+
 ##  ==========自定义槽函数===============================
+   # item更改时触发
    def do_currentChanged(self):
       self.ui.btnSave.setEnabled(self.tableModel.isDirty())
       self.ui.btnRevert.setEnabled(self.tableModel.isDirty())
 
+
+   # 行更改时触发(所有模板)
    def do_currentRowChanged(self, current, previous):
       curRec = self.tableModel.record(current.row())
       self.curRec = curRec
       if curRec.isNull("image"):
          self.ui.labAllTemp.clear()
       else:
+         # 展示所在行模板图片
          image_data = curRec.value("image")
          width = curRec.value("width")
          height = curRec.value("height")
@@ -265,10 +300,12 @@ class QmyDialogSelectTemp(QDialog):
             QMessageBox.warning(self, "警告", "图片数据出错")
 
 
+   # 行更改时触发(选择的模板)
    def do_currentRowChanged_2(self, current, previous):
       if current is None:
          return
       row = current.row()
+      # 展示图片
       image_data = self.selectedTemp[row]["image"]
       width = self.selectedTemp[row]["width"]
       height = self.selectedTemp[row]["height"]
@@ -292,6 +329,7 @@ class QmyDialogSelectTemp(QDialog):
             self.ui.labSelectTemp.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
       except Exception as e:
          QMessageBox.warning(self, "警告", "图片数据出错")
+
 
 ##  ============窗体测试程序 ============================
 if __name__ == "__main__":  # 用于当前窗体测试

@@ -126,6 +126,7 @@ class SiftFlann:
                 continue
 
             area_ratio = float(abs(area2-area1))/area2
+            print(area_ratio)
             # 选择最好的匹配
             if area_ratio < min_area_ratio:
                 min_area_ratio = area_ratio

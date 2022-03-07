@@ -29,9 +29,12 @@ class QmyDialogSetParams(QDialog):
 
 ##  ============自定义功能函数========================
    def set_default_params(self, default_params):
+      # 默认参数获得
       self.default_params = default_params
 
+
    def set_init_params(self):
+      # 根据配置文件设置初始参数
       setting = QSettings('./config.ini', QSettings.IniFormat)
       self.ui.spinBoxExposureTime.setValue(int(setting.value('exposure_time')))
       self.ui.spinBoxTriggerDelay.setValue(int(setting.value('trigger_delay')))
@@ -43,7 +46,9 @@ class QmyDialogSetParams(QDialog):
       self.ui.spinBoxK.setValue(int(setting.value('k')))
       self.ui.doubleSpinBoxRatio.setValue(float(setting.value('ratio')))
 
+
    def get_new_params(self):
+      # 新的参数返回
       new_params = {
          'exposure_time': self.ui.spinBoxExposureTime.value(),
          'trigger_delay': self.ui.spinBoxTriggerDelay.value(),
@@ -63,6 +68,7 @@ class QmyDialogSetParams(QDialog):
 ##  ========由connectSlotsByName()自动连接的槽函数=========
    @pyqtSlot()
    def on_btnDefault_clicked(self):
+      # 恢复默认参数
       self.ui.spinBoxExposureTime.setValue(self.default_params['exposure_time'])
       self.ui.spinBoxTriggerDelay.setValue(self.default_params['trigger_delay'])
       self.ui.spinBoxMinMatchCount.setValue(self.default_params['min_match_count'])
