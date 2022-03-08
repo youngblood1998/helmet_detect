@@ -62,6 +62,7 @@ class QmyDialogSetParams(QDialog):
       }
       return new_params
 
+
 ##  ===========event处理函数==========================
 
 

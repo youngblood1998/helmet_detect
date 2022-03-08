@@ -45,12 +45,12 @@ class QmyDialogMakeTemp(QDialog):
       # else:
       #    image = cv2.resize(image, dsize=None, fx=float(H)/h, fy=float(H)/h)
 
-      if len(image.shape) == 3:
-         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-      else:
-         image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+      # if len(image.shape) == 3:
+      #    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+      # else:
+      #    image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
 
-      qt_image = QtGui.QImage(image.data,
+      qt_image = QtGui.QImage(image.data.tobytes(),
                               image.shape[1],
                               image.shape[0],
                               image.shape[1]*3,

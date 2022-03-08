@@ -389,6 +389,12 @@ class QmyWidget(QWidget):
          # 将相机内容缩小显示
          cvImage = cv2.resize(cvImage, dsize=None, fx=0.3, fy=0.3, interpolation=cv2.INTER_LINEAR)
 
+         # 格式转换
+         if len(cvImage) == 3:
+            cvImage = cv2.cvtColor(cvImage, cv2.COLOR_BGR2RGB)
+         else:
+            cvImage = cv2.cvtColor(cvImage, cv2.COLOR_GRAY2RGB)
+
          label = self.ui.label
          label.setStyleSheet('color: green')
          label.setText("测试相机中")
@@ -515,6 +521,12 @@ class QmyWidget(QWidget):
 
       # # 释放相关资源
       # streamSource.contents.release(streamSource)
+
+      # 格式转换
+      if len(cvImage) == 3:
+         cvImage = cv2.cvtColor(cvImage, cv2.COLOR_BGR2RGB)
+      else:
+         cvImage = cv2.cvtColor(cvImage, cv2.COLOR_GRAY2RGB)
 
       return cvImage
 
@@ -761,6 +773,7 @@ class QmyWidget(QWidget):
       # 如果在检测，则停止
       if self.detect_flag:
          self.do_stopDetect()
+         self.detect_flag =False
       # 关闭相机
       nRet = closeCamera(self.camera)
       if (nRet != 0):
@@ -860,13 +873,13 @@ class QmyWidget(QWidget):
          new_resize = new_params["resize_times"]
          for param_name in new_params:
             self.settings.setValue(param_name, new_params[param_name])
-      # 判断resize_times是否改变确定是否更改关键点和描述子
-      if round(float(old_resize), 1) != round(new_resize, 1) and len(self.temp_arr) != 0:
-         print(1)
-         for t in self.temp_arr:
-            kp, des = self.do_createDes(t["image"])
-            t["kp"] = kp
-            t["des"] = des
+         # 判断resize_times是否改变确定是否更改关键点和描述子
+         if round(float(old_resize), 1) != round(new_resize, 1) and len(self.temp_arr) != 0:
+            print(1)
+            for t in self.temp_arr:
+               kp, des = self.do_createDes(t["image"])
+               t["kp"] = kp
+               t["des"] = des
 
 
    # 选择模板
@@ -919,10 +932,10 @@ class QmyWidget(QWidget):
             model = dialogMakeTemp.ui.lineEditModel.text()
             size = dialogMakeTemp.ui.comboBoxSize.currentText()
             color = dialogMakeTemp.ui.lineEditColor.text()
-            if len(image) == 3:
-               nImage = cv2.cvtColor(nImage, cv2.COLOR_BGR2RGB)
-            else:
-               nImage = cv2.cvtColor(nImage, cv2.COLOR_GRAY2RGB)
+            # if len(image) == 3:
+            #    nImage = cv2.cvtColor(nImage, cv2.COLOR_BGR2RGB)
+            # else:
+            #    nImage = cv2.cvtColor(nImage, cv2.COLOR_GRAY2RGB)
             ret = self.do_sqlInsert(nImage, model, size, color)
 
             if ret == 0:

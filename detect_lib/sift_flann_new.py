@@ -16,6 +16,7 @@ class SiftFlann:
         self.k = k  # 匹配取前k个
         self.ratio = ratio  # 距离比例
 
+
     def sift_flann(self, im1, kp1, des1, im2):
         # # 大小变换
         # im1 = cv2.resize(im1, dsize=None, fx=self.resize_times, fy=self.resize_times, interpolation=cv2.INTER_LINEAR)
@@ -80,6 +81,7 @@ class SiftFlann:
         # print("-"*50)
 
         return len(good), dst, M
+
 
     def match(self, temp_arr, im2):
         # 最多的匹配点个数
