@@ -2,15 +2,15 @@
 import os
 import sys
 
-import cv2
+# import cv2
 import numpy as np
 from PyQt5 import QtGui
 import copy
 
-from PyQt5.QtCore import Qt, QItemSelectionModel, QModelIndex
+from PyQt5.QtCore import QItemSelectionModel
 from PyQt5.QtWidgets import QApplication, QDialog, QMessageBox, QTableWidgetItem
 
-from PyQt5.QtCore import  pyqtSlot,pyqtSignal,Qt
+from PyQt5.QtCore import  pyqtSlot, Qt
 
 ##from PyQt5.QtWidgets import
 

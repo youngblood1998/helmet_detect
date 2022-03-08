@@ -1,4 +1,4 @@
-import numpy
+# import numpy
 import numpy as np
 import cv2
 from detect_lib.calculate_area import CalArea

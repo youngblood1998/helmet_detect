@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import sys
-import numpy
-import cv2
+# import numpy
+# import cv2
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import QApplication, QDialog
 
