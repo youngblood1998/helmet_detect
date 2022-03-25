@@ -9,9 +9,11 @@ import sqlite3
 # import time
 import cv2
 import numpy
-from PyQt5 import QtGui
+import csv
+from socket import *
 
-from PyQt5.QtCore import pyqtSlot, QSettings
+from PyQt5 import QtGui
+from PyQt5.QtCore import pyqtSlot, QSettings, QThread, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
 
 from ImageConvert import *
@@ -31,6 +33,37 @@ from ui_MainWidget import Ui_Form as Ui_Widget
 ##from PyQt5.QtMultimedia import
 ##from PyQt5.QtMultimediaWidgets import
 
+class Runthread(QThread):
+   #  通过类成员对象定义信号对象
+   signal = pyqtSignal(int)
+
+   def __init__(self, tcp_server_socket):
+      super(Runthread, self).__init__()
+      self.tcp_server_socket = tcp_server_socket
+      self.client_socket = None
+
+   def __del__(self):
+      self.wait()
+
+   def run(self):
+      try:
+         self.client_socket, ip_port = self.tcp_server_socket.accept()
+         self.signal.emit(1)
+      except:
+         return
+
+   def pause(self):
+      if self.client_socket:
+         self.client_socket.close()
+         self.client_socket = None
+         self.tcp_server_socket.close()
+      else:
+         self.tcp_server_socket.close()
+
+   def send(self, string):
+      if self.client_socket:
+         self.client_socket.send(string.encode('utf-8'))
+
 
 class QmyWidget(QWidget):
 
@@ -41,6 +74,7 @@ class QmyWidget(QWidget):
 
       self.camera_flag = False   # 相机开关标志
       self.detect_flag = False   # 检测开关标志
+      self.tcp_flag = False      # TCP连接标志
 
       # 将一部分按钮设置成非使能状态
       self.ui.btnLinkCamera.setEnabled(False)
@@ -49,6 +83,10 @@ class QmyWidget(QWidget):
       self.ui.btnStartDetect.setEnabled(False)
       self.ui.btnStopDetect.setEnabled(False)
       self.ui.btnMakeTemp.setEnabled(False)
+      self.ui.btnTCPClose.setEnabled(False)
+      default_ip = gethostbyname(gethostname())
+      self.ui.lineEditAdr.setText(default_ip)
+      self.ui.lineEditPort.setText("8080")
 
       # 默认参数
       self.default_params = {
@@ -65,6 +103,7 @@ class QmyWidget(QWidget):
 
       self.select_temp = []   # 选择的模板
       self.temp_arr = []   # 选择的模板(包含关键点和描述子)
+      self.mythread = None
 
       # 有无配置文件，没有的话创建并设置默认参数
       if not os.path.exists('./config.ini'):
@@ -79,6 +118,42 @@ class QmyWidget(QWidget):
 
 
 ##  ==============自定义功能函数========================
+   # 输出csv文件
+   def write_csv(self, model, size, color, ok, x, y, angle):
+      if not os.path.exists("../records"):
+         os.mkdir("../records")
+
+      if not os.path.isfile("../records/" + str(datetime.date.today()) + ".csv"):
+         with open("../records/" + str(datetime.date.today()) + ".csv", 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["", "型号", "尺寸", "颜色", "时间", "OK", "NG", "总数", "X位置", "Y位置", "角度"])
+
+      with open("../records/" + str(datetime.date.today()) + ".csv", 'r', newline='') as file:
+         reader = csv.reader(file)
+         reader_list = list(reader)
+         length = len(reader_list)
+         last_row = reader_list[-1]
+
+      with open("../records/" + str(datetime.date.today()) + ".csv", "a", newline='') as file:
+         writer = csv.writer(file)
+         if length == 1:
+            if ok:
+               writer.writerow([1, model, size, color, datetime.datetime.now().strftime('%H:%M:%S'),
+                                1, 0, 1, x, y, angle])
+            else:
+               writer.writerow([1, "", "", "", datetime.datetime.now().strftime('%H:%M:%S'),
+                                0, 1, 1, 0, 0, 0])
+         else:
+            if ok:
+               writer.writerow([int(last_row[0]) + 1, model, size, color,
+                                datetime.datetime.now().strftime('%H:%M:%S'), int(last_row[5]) + 1,
+                                last_row[6], int(last_row[7]) + 1, x, y, angle])
+            else:
+               writer.writerow([int(last_row[0]) + 1, "", "", "",
+                                datetime.datetime.now().strftime('%H:%M:%S'), last_row[5],
+                                int(last_row[6]) + 1, int(last_row[7]) + 1, 0, 0, 0])
+
+
    # 软触发得到一张图，用于创建模板
    def grabOne(self):
       # 创建control节点
@@ -192,7 +267,7 @@ class QmyWidget(QWidget):
                        )
       # kp2, des2 = self.do_createDes(cvtImage)
       # 返回结果，模板、方向、画出匹配框的图像
-      result, dir, imageDraw = sift.match(self.temp_arr, cvtImage)
+      result, dir, imageDraw, angle, x, y = sift.match(self.temp_arr, cvtImage)
 
       # 匹配结果不为空，则显示输入输出图像
       if not result is None:
@@ -243,10 +318,21 @@ class QmyWidget(QWidget):
          s = "前" if dir==0 else "后"
          label.setText("型号："+result["model"]+"；\t尺寸:"+result["size"]+"；\t方向："+str(s))
          # self.ui.label_2.setText("型号："+result["model"]+"；尺寸:"+result["size"]+"；方向："+angle)
+         # 写入csv
+         self.write_csv(result["model"], result["size"], result["color"], True, x, y, angle)
+         # 传输数据
+         if self.mythread:
+            string = result["model"]+";"+result["size"]+";"+result["color"]+";"+str(dir)+";"+str(x)+";"+str(y)+";"+str(angle)
+            self.mythread.send(string)
       else:
          label = self.ui.label_2
          label.setStyleSheet('color: red')
          self.ui.label_2.setText("无匹配结果")
+         # 写入csv
+         self.write_csv("", "", "", False, 0, 0, 0)
+         # 传输数据
+         string = ";" + ";" + ";" + str(-1) + ";" + str(0) + ";" + str(0) + ";" + str(0)
+         self.mythread.send(string)
       gc.collect()
 
 
@@ -659,6 +745,14 @@ class QmyWidget(QWidget):
       return temp_arr
 
 
+   def do_TCPLink(self, a):
+      label = self.ui.labTCP
+      label.setStyleSheet('color: green')
+      label.setText("连接成功")
+
+      self.tcp_flag = True
+
+
 ##  ==============event处理函数==========================
    # 关闭事件
    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
@@ -948,6 +1042,46 @@ class QmyWidget(QWidget):
          self.ui.btnTestCamera.setEnabled(True)
          self.ui.btnMakeTemp.setEnabled(True)
          self.ui.btnStartDetect.setEnabled(True)
+
+
+   # 开启主机
+   @pyqtSlot()
+   def on_btnTCPOpen_clicked(self):
+      ip = self.ui.lineEditAdr.text()
+      port = int(self.ui.lineEditPort.text())
+      address = (ip, port)
+
+      self.tcp_server_socket = socket(AF_INET, SOCK_STREAM)
+      self.tcp_server_socket.bind(address)
+      self.tcp_server_socket.listen(128)
+
+      label = self.ui.labTCP
+      label.setStyleSheet('color: green')
+      label.setText("等待连接")
+
+      # client_socket, ip_port = self.tcp_server_socket.accept()
+      self.mythread = Runthread(self.tcp_server_socket)
+      self.mythread.start()
+
+      self.mythread.signal.connect(self.do_TCPLink)
+
+      self.ui.btnTCPClose.setEnabled(True)
+      self.ui.btnTCPOpen.setEnabled(False)
+
+
+   # 关闭主机
+   @pyqtSlot()
+   def on_btnTCPClose_clicked(self):
+      # self.tcp_server_socket.close()
+      self.mythread.pause()
+
+      label = self.ui.labTCP
+      label.setStyleSheet('color: black')
+      label.setText("未开启")
+
+      self.tcp_flag = False
+      self.ui.btnTCPClose.setEnabled(False)
+      self.ui.btnTCPOpen.setEnabled(True)
 
 
 ##  =============自定义槽函数===============================

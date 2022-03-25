@@ -116,7 +116,7 @@ class SiftFlann:
             cal = CalArea()
             area2 = cal.get_point_area([dst[0][0], dst[1][0], dst[2][0], dst[3][0]])
             # print(dst, area2)
-            # im2_width = abs(dst[0][0][1]-dst[2][0][0])
+            # im2_width = abs(dst[0][0][0]-dst[2][0][0])
             # im2_height = abs(dst[0][0][1]-dst[2][0][1])
             # print(area1, area2)
             # i/f (im2_width < 0.5*im1_width or im2_height < 0.5*im1_height) \
@@ -154,4 +154,6 @@ class SiftFlann:
         # cv2.destroyAllWindows()
         # 返回模板路径和角度
         direction = 0 if (angles[2] < np.pi/2 and angles[2] > -np.pi/2) else 1
-        return best_temp, direction, im2
+        x, y = int((draw_point[0][0][1]+draw_point[1][0][1]+draw_point[2][0][1]+draw_point[3][0][1])/4), \
+               int((draw_point[0][0][0]+draw_point[1][0][0]+draw_point[2][0][0]+draw_point[3][0][0])/4)
+        return best_temp, direction, im2, angles[2], x, y

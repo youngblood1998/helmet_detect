@@ -513,3 +513,53 @@
 #---------------------------------------
 # import numpy
 # print(numpy.MAXDIMS)
+
+#----------------------------------------
+
+# import csv
+# import os
+# import datetime
+# import random
+#
+#
+# # 输出csv文件
+# def write_csv(model, size, color, ok, x, y, angle):
+#    if not os.path.exists("../records"):
+#       os.mkdir("../records")
+#
+#    if not os.path.isfile("../records/" + str(datetime.date.today()) + ".csv"):
+#       with open("../records/" + str(datetime.date.today()) + ".csv", 'w', newline='') as file:
+#          writer = csv.writer(file)
+#          writer.writerow(["", "型号", "尺寸", "颜色", "时间", "OK", "NG", "总数", "X位置", "Y位置", "角度"])
+#
+#    with open("../records/" + str(datetime.date.today()) + ".csv", 'r', newline='') as file:
+#       reader = csv.reader(file)
+#       reader_list = list(reader)
+#       length = len(reader_list)
+#       last_row = reader_list[-1]
+#
+#    with open("../records/" + str(datetime.date.today()) + ".csv", "a", newline='') as file:
+#       writer = csv.writer(file)
+#       if length == 1:
+#          if ok:
+#             writer.writerow([1, model, size, color, datetime.datetime.now().strftime('%H:%M:%S'),
+#                              1, 0, 1, x, y, angle])
+#          else:
+#             writer.writerow([1, "", "", "", datetime.datetime.now().strftime('%H:%M:%S'),
+#                              0, 1, 1, 0, 0, 0])
+#       else:
+#          if ok:
+#             writer.writerow([int(last_row[0]) + 1, model, size, color,
+#                              datetime.datetime.now().strftime('%H:%M:%S'), int(last_row[5]) + 1,
+#                              last_row[6], int(last_row[7]) + 1, x, y, angle])
+#          else:
+#             writer.writerow([int(last_row[0]) + 1, "", "", "",
+#                              datetime.datetime.now().strftime('%H:%M:%S'), last_row[5],
+#                              int(last_row[6]) + 1, int(last_row[7]) + 1, 0, 0, 0])
+#
+#
+# for _ in range(10):
+#    write_csv("A", "M", "绿", round(random.random()), 10*random.random(), 10*random.random(), 3.14*random.random())
+
+#--------------------------------------------------------------------------------------------------------------------
+# print(str(0))
