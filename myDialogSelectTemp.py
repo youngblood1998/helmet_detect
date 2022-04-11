@@ -211,18 +211,40 @@ class QmyDialogSelectTemp(QDialog):
    # 选择模板
    @pyqtSlot()
    def on_btnSelect_clicked(self):
-      temp = {}
-      for i in self.fldNum:
-         temp[i] = self.curRec.value(i)
-      self.selectedTemp.append(temp)
-      # 刷新表格
+      # 多个选择
+      for j in self.selModel.selectedIndexes():
+         curRec = self.tableModel.record(j.row())
+         temp = {}
+         for i in self.fldNum:
+            temp[i] = curRec.value(i)
+         self.selectedTemp.append(temp)
+         # 刷新表格
       self.__freshTable()
+
+      # 单个选择
+      # temp = {}
+      # for i in self.fldNum:
+      #    temp[i] = self.curRec.value(i)
+      # self.selectedTemp.append(temp)
+      # # 刷新表格
+      # self.__freshTable()
 
 
    # 移除已选模板
    @pyqtSlot()
    def on_btnRemove_clicked(self):
-      curRow = self.ui.tableWidgetSelectTemp.currentRow()
+      # 单个移除
+      # curRow = self.ui.tableWidgetSelectTemp.currentRow()
+      # self.selectedTemp.pop(curRow)
+
+      # 多个移除
+      remove_list = []
+      for i in self.ui.tableWidgetSelectTemp.selectedIndexes():
+         remove_list.insert(0, i.row())
+      remove_list.sort(reverse=True)
+      for j in remove_list:
+         self.selectedTemp.pop(j)
+
       # if curRow == -1:
       #    return
       # for i in range(len(self.selectedTemp)):
@@ -242,7 +264,7 @@ class QmyDialogSelectTemp(QDialog):
       #    if flag == True:
       #       self.selectedTemp.pop(i)
       #       break
-      self.selectedTemp.pop(curRow)
+
       # 刷新
       self.__freshTable()
 
