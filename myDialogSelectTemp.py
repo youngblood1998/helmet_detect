@@ -217,7 +217,13 @@ class QmyDialogSelectTemp(QDialog):
          temp = {}
          for i in self.fldNum:
             temp[i] = curRec.value(i)
-         self.selectedTemp.append(temp)
+         # 判断是否有一样的
+         flag = True
+         for k in self.selectedTemp:
+            if k["date"] == temp["date"]:
+               flag = False
+         if flag:
+            self.selectedTemp.append(temp)
          # 刷新表格
       self.__freshTable()
 
