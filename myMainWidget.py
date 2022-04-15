@@ -20,7 +20,8 @@ from ImageConvert import *
 from MVSDK import *
 from camera_lib import enumCameras, openCamera, closeCamera, setSoftTriggerConf, setExposureTime,  \
    setLineTriggerConf
-from detect_lib.sift_flann_new import SiftFlann
+# from detect_lib.sift_flann_new import SiftFlann
+from detect_lib.surf_bf_new import SurfBf
 from myDialogMakeTemp import QmyDialogMakeTemp
 from myDialogSetParams import QmyDialogSetParams
 from myDialogSelectTemp import QmyDialogSelectTemp
@@ -226,7 +227,7 @@ class QmyWidget(QWidget):
          cvImage = numpy.array(colorByteArray).reshape(imageParams.height, imageParams.width, 3)
 
       # 格式转换
-      if len(cvImage) == 3:
+      if len(cvImage.shape) == 3:
          cvtImage = cv2.cvtColor(cvImage, cv2.COLOR_BGR2RGB)
       else:
          cvtImage = cv2.cvtColor(cvImage, cv2.COLOR_GRAY2RGB)
@@ -256,8 +257,21 @@ class QmyWidget(QWidget):
       self.ui.labOutput.clear()
       self.ui.label_2.clear()
 
+      # # 检测
+      # sift = SiftFlann(min_match_count=int(self.settings.value("min_match_count")),
+      #                  resize_times=float(self.settings.value("resize_times")),
+      #                  max_matches=int(self.settings.value("max_matches")),
+      #                  trees=int(self.settings.value("trees")),
+      #                  checks=int(self.settings.value("checks")),
+      #                  k=int(self.settings.value("k")),
+      #                  ratio=float(self.settings.value("ratio"))
+      #                  )
+      # # kp2, des2 = self.do_createDes(cvtImage)
+      # # 返回结果，模板、方向、画出匹配框的图像
+      # result, dir, imageDraw, angle, x, y = sift.match(self.temp_arr, cvtImage)
+
       # 检测
-      sift = SiftFlann(min_match_count=int(self.settings.value("min_match_count")),
+      surf = SurfBf(min_match_count=int(self.settings.value("min_match_count")),
                        resize_times=float(self.settings.value("resize_times")),
                        max_matches=int(self.settings.value("max_matches")),
                        trees=int(self.settings.value("trees")),
@@ -267,7 +281,7 @@ class QmyWidget(QWidget):
                        )
       # kp2, des2 = self.do_createDes(cvtImage)
       # 返回结果，模板、方向、画出匹配框的图像
-      result, dir, imageDraw, angle, x, y = sift.match(self.temp_arr, cvtImage)
+      result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage)
 
       # 匹配结果不为空，则显示输入输出图像
       if not result is None:
@@ -476,7 +490,7 @@ class QmyWidget(QWidget):
          cvImage = cv2.resize(cvImage, dsize=None, fx=0.3, fy=0.3, interpolation=cv2.INTER_LINEAR)
 
          # 格式转换
-         if len(cvImage) == 3:
+         if len(cvImage.shape) == 3:
             cvImage = cv2.cvtColor(cvImage, cv2.COLOR_BGR2RGB)
          else:
             cvImage = cv2.cvtColor(cvImage, cv2.COLOR_GRAY2RGB)
@@ -609,7 +623,7 @@ class QmyWidget(QWidget):
       # streamSource.contents.release(streamSource)
 
       # 格式转换
-      if len(cvImage) == 3:
+      if len(cvImage.shape) == 3:
          cvImage = cv2.cvtColor(cvImage, cv2.COLOR_BGR2RGB)
       else:
          cvImage = cv2.cvtColor(cvImage, cv2.COLOR_GRAY2RGB)
@@ -637,14 +651,23 @@ class QmyWidget(QWidget):
       di = float(self.settings.value("resize_times"))
       img1 = cv2.resize(im1, dsize=None, fx=di, fy=di, interpolation=cv2.INTER_LINEAR)
       # 直方图归一化，应对白色的头盔
-      cv2.normalize(img1, img1, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+      # cv2.normalize(img1, img1, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
       if len(img1.shape) == 3:
          img1 = cv2.cvtColor(img1, cv2.COLOR_RGB2GRAY)
 
-      # 初始化SIFT特征检测器
-      sift = cv2.SIFT_create()
+      # 限制对比度的自适应阈值均衡化
+      clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+      img1 = clahe.apply(img1)
+
+      # # 初始化SIFT特征检测器
+      # sift = cv2.SIFT_create()
+      # # 使用特征检测器找特征点和描述子
+      # kp1, des1 = sift.detectAndCompute(img1, None)
+
+      # 初始化SURF特征检测器
+      surf = cv2.xfeatures2d.SURF_create()
       # 使用特征检测器找特征点和描述子
-      kp1, des1 = sift.detectAndCompute(img1, None)
+      kp1, des1 = surf.detectAndCompute(img1, None)
 
       return kp1, des1
 
@@ -1026,7 +1049,7 @@ class QmyWidget(QWidget):
             model = dialogMakeTemp.ui.lineEditModel.text()
             size = dialogMakeTemp.ui.comboBoxSize.currentText()
             color = dialogMakeTemp.ui.lineEditColor.text()
-            # if len(image) == 3:
+            # if len(image.shape) == 3:
             #    nImage = cv2.cvtColor(nImage, cv2.COLOR_BGR2RGB)
             # else:
             #    nImage = cv2.cvtColor(nImage, cv2.COLOR_GRAY2RGB)

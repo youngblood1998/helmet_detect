@@ -4,7 +4,7 @@ import cv2
 from detect_lib.calculate_area import CalArea
 
 
-class SiftFlann:
+class SurfBf:
     def __init__(self, min_match_count=10, resize_times=0.3, max_matches=500, flann_index_kdtree=0,
                  trees=5, checks=50, k=2, ratio=0.9):
         self.min_match_count = min_match_count  # 最小匹配数
@@ -16,38 +16,51 @@ class SiftFlann:
         self.k = k  # 匹配取前k个
         self.ratio = ratio  # 距离比例
 
-    def sift_flann(self, im1, im2):
+    def surf_bf(self, im1, im2):
         # # 大小变换
         # im1 = cv2.resize(im1, dsize=None, fx=self.resize_times, fy=self.resize_times, interpolation=cv2.INTER_LINEAR)
         # im2 = cv2.resize(im2, dsize=None, fx=self.resize_times, fy=self.resize_times, interpolation=cv2.INTER_LINEAR)
         # 直方图归一化，应对白色的头盔
-        cv2.normalize(im1, im1, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
-        cv2.normalize(im2, im2, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+        # cv2.normalize(im1, im1, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
+        # cv2.normalize(im2, im2, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
         # 转换成黑白
-        img1 = cv2.cvtColor(im1, cv2.COLOR_BGR2GRAY)
+        # img1 = cv2.cvtColor(im1, cv2.COLOR_BGR2GRAY)
         # img2 = cv2.cvtColor(im2, cv2.COLOR_BGR2GRAY)
+        if len(im1.shape) == 3:
+            img1 = cv2.cvtColor(im1, cv2.COLOR_RGB2GRAY)
+        else:
+            img1 = im1
+
         if len(im2.shape) == 3:
             img2 = cv2.cvtColor(im2, cv2.COLOR_RGB2GRAY)
         else:
             img2 = im2
 
-        # 初始化SIFT特征检测器
-        sift = cv2.xfeatures2d.SIFT_create(self.max_matches)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        img1 = clahe.apply(img1)
+        img2 = clahe.apply(img2)
+
+        # 初始化SURF特征检测器
+        surf = cv2.xfeatures2d.SURF_create()
 
         # 使用特征检测器找特征点和描述子
-        kp1, des1 = sift.detectAndCompute(img1, None)
-        kp2, des2 = sift.detectAndCompute(img2, None)
+        kp1, des1 = surf.detectAndCompute(img1, None)
+        kp2, des2 = surf.detectAndCompute(img2, None)
 
-        # 初始化一个FLANN匹配器
-        index_params = dict(algorithm=self.flann_index_kdtree, trees=self.trees)
-        search_params = dict(checks=self.checks)    # or pass empty dictionary
-        flann = cv2.FlannBasedMatcher(index_params, search_params)
+        # # 初始化一个FLANN匹配器
+        # index_params = dict(algorithm=self.flann_index_kdtree, trees=self.trees)
+        # search_params = dict(checks=self.checks)    # or pass empty dictionary
+        # flann = cv2.FlannBasedMatcher(index_params, search_params)
+
+        # 初始化一个BF匹配器
+        bf = cv2.BFMatcher()
 
         if des2 is None:
             return 0, [], None
 
-        # 执行匹配
-        matches = flann.knnMatch(des1, des2, k=self.k)
+        # # 执行匹配
+        # matches = flann.knnMatch(des1, des2, k=self.k)
+        matches = bf.knnMatch(des1, des2, k=self.k)
 
         # 选出好的匹配结果进行保存
         good = []
@@ -66,7 +79,7 @@ class SiftFlann:
                 print("M is None")
                 print("-" * 50)
                 return 0, [], None
-            h, w = img1.shape
+            h, w = im1.shape[0], im1.shape[1]
             # 创建一个queryImage的四个点轮廓图
             pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
             # 对这个轮廓图执行透视变换
@@ -101,7 +114,7 @@ class SiftFlann:
             im1_width = np.shape(im1)[1]
             area1 = im1_width * im1_height
             # 匹配点个数、框的四个点、变换矩阵
-            matches, dst, matrix = self.sift_flann(im1, im2)
+            matches, dst, matrix = self.surf_bf(im1, im2)
             # print(dst[2][0][0])
             # 匹配点太少的话直接跳过
             if len(dst) == 0:
@@ -119,7 +132,7 @@ class SiftFlann:
             #     print(2)
             #     continue
             # 面积不合适直接跳过
-            if area2 < 0.8*area1 or area2 > 1.2*area1:
+            if area2 < 0.8*area1 or area2 > 1.25*area1:
                 # print(2)
                 continue
             # 选择最好的匹配
@@ -133,10 +146,10 @@ class SiftFlann:
             print("匹配不到该物体")
             return None, []
         # 把匹配的框画进去，并表示出来
-        # im2 = cv2.polylines(im2, [np.int32(draw_point)], True, (255, 0, 0), 3, cv2.LINE_AA)
-        # cv2.imshow("template", best_match)
-        # cv2.imshow("result", im2)
-        # cv2.waitKey(0)
-        # cv2.destroyAllWindows()
+        im2 = cv2.polylines(im2, [np.int32(draw_point)], True, (255, 0, 0), 3, cv2.LINE_AA)
+        cv2.imshow("template", best_match)
+        cv2.imshow("result", im2)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
         # 返回模板路径和角度
         return best_path, angles[2]

@@ -326,16 +326,35 @@
 #
 #
 # if __name__ == '__main__':
-#     pwd = "./data/templates/"
-#     img_arr = ["b1", "b2", "g1", "o1", "o2", "w1"]
-#     temp_arr = [pwd+img+".jpg" for img in img_arr]
+#     pwd = "./data_test/template/"
+#     img_arr = ["b-l", "b-m", "b-s", "butterfly", "core", "p-hole", "point", "w-hole", "w-l", "w-m"]
+#     temp_arr = [pwd + img + ".jpg" for img in img_arr]
 #     start = time.time()
-#     match = cv2.imread("./data/matches/b2-2.bmp")
+#     match = cv2.imread("./data_test/matchs/b-s-1.bmp")
 #
-#     sift = SiftFlann(min_match_count=5, resize_times=0.1)
+#     sift = SiftFlann(resize_times=0.3)
 #     result, angle = sift.match(temp_arr, match)
 #     print(time.time()-start)
 #     print(result, angle)
+
+#-----------------------------------------------------------------------
+
+from detect_lib.surf_bf import SurfBf
+import cv2
+import time
+
+
+if __name__ == '__main__':
+    pwd = "./data_test/template/"
+    img_arr = ["b-l", "b-m", "b-s", "butterfly", "core", "p-hole", "point", "w-hole", "w-l", "w-m"]
+    temp_arr = [pwd+img+".jpg" for img in img_arr]
+    start = time.time()
+    match = cv2.imread("./data_test/matchs/w-m-1.bmp")
+
+    surf = SurfBf(resize_times=0.2)
+    result, angle = surf.match(temp_arr, match)
+    print(time.time()-start)
+    print(result, angle)
 
 #----------------------------------------------------------------
 # a = {'l': 1}
@@ -563,3 +582,8 @@
 
 #--------------------------------------------------------------------------------------------------------------------
 # print(str(0))
+#
+# import cv2
+#
+# img = cv2.imread("./data_color/matches/b.bmp")
+# print(len(img.shape))
