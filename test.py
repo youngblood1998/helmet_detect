@@ -338,23 +338,23 @@
 #     print(result, angle)
 
 #-----------------------------------------------------------------------
-
-from detect_lib.surf_bf import SurfBf
-import cv2
-import time
-
-
-if __name__ == '__main__':
-    pwd = "./data_test/template/"
-    img_arr = ["b-l", "b-m", "b-s", "butterfly", "core", "p-hole", "point", "w-hole", "w-l", "w-m"]
-    temp_arr = [pwd+img+".jpg" for img in img_arr]
-    start = time.time()
-    match = cv2.imread("./data_test/matchs/w-m-1.bmp")
-
-    surf = SurfBf(resize_times=0.2)
-    result, angle = surf.match(temp_arr, match)
-    print(time.time()-start)
-    print(result, angle)
+#
+# from detect_lib.surf_bf import SurfBf
+# import cv2
+# import time
+#
+#
+# if __name__ == '__main__':
+#     pwd = "./data_test/template/"
+#     img_arr = ["b-l", "b-m", "b-s", "butterfly", "core", "p-hole", "point", "w-hole", "w-l", "w-m"]
+#     temp_arr = [pwd+img+".jpg" for img in img_arr]
+#     start = time.time()
+#     match = cv2.imread("./data_test/matchs/w-m-1.bmp")
+#
+#     surf = SurfBf(resize_times=0.2)
+#     result, angle = surf.match(temp_arr, match)
+#     print(time.time()-start)
+#     print(result, angle)
 
 #----------------------------------------------------------------
 # a = {'l': 1}
@@ -587,3 +587,86 @@ if __name__ == '__main__':
 #
 # img = cv2.imread("./data_color/matches/b.bmp")
 # print(len(img.shape))
+
+#----------------------------------------------------------------------------------
+# import cv2
+# import time
+#
+# start = time.time()
+#
+# MIN_MATCH_COUNT = 10
+# for i in range(1, 11):
+#     fsize = 0.1*i
+#     im1 = cv2.imread('./data_test/template/p-hole.jpg', cv2.IMREAD_COLOR)
+#     im1 = cv2.resize(im1, dsize=None, fx=fsize, fy=fsize, interpolation=cv2.INTER_LINEAR)
+#     img1 = cv2.cvtColor(im1, cv2.COLOR_BGR2GRAY)
+#
+#     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+#     img1 = clahe.apply(img1)
+#     # cv2.imshow("img1"+str(i), img1)
+#
+#     surf = cv2.xfeatures2d.SURF_create()
+#     kp1, des1 = surf.detectAndCompute(img1, None)
+#
+#     im1_copy = im1.copy()
+#     cv2.drawKeypoints(im1_copy, kp1, im1_copy, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+#     cv2.imshow("kp1"+str(i), im1_copy)
+#
+#     print(len(kp1)/i)
+#
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
+
+#--------------------------------------------------------------------------------------------
+
+import cv2 as cv
+import numpy as np
+import time
+
+
+def create_rgb_hist(image):
+   h, w, c = image.shape
+   # 创建一个（16*16*16,1）的初始矩阵，作为直方图矩阵
+   # 16*16*16的意思为三通道每通道有16个bins
+   rgbhist = np.zeros([16 * 16 * 16, 1], np.float32)
+   bsize = 256 / 16
+   for row in range(h):
+      for col in range(w):
+         b = image[row, col, 0]
+         g = image[row, col, 1]
+         r = image[row, col, 2]
+         # 人为构建直方图矩阵的索引，该索引是通过每一个像素点的三通道值进行构建
+         index = int(b / bsize) * 16 * 16 + int(g / bsize) * 16 + int(r / bsize)
+         # 该处形成的矩阵即为直方图矩阵
+         rgbhist[int(index), 0] += 1
+   return rgbhist
+
+def hist_compare(image1, image2):
+   start = time.time()
+   # 创建第一幅图的rgb三通道直方图（直方图矩阵）
+   hist1 = create_rgb_hist(image1)
+   # 创建第二幅图的rgb三通道直方图（直方图矩阵）
+   hist2 = create_rgb_hist(image2)
+   # 进行三种方式的直方图比较
+   match1 = cv.compareHist(hist1, hist2, cv.HISTCMP_BHATTACHARYYA)
+   match2 = cv.compareHist(hist1, hist2, cv.HISTCMP_CORREL)
+   match3 = cv.compareHist(hist1, hist2, cv.HISTCMP_CHISQR)
+   print("巴氏距离：%s, 相关性：%s, 卡方：%s" %(match1, match2, match3))
+   print(time.time()-start)
+
+fsize = 0.1
+
+src1 = cv.imread("./data_color/templates/test.jpg")
+src1 = cv.resize(src1, dsize=None, fx=fsize, fy=fsize, interpolation=cv.INTER_LINEAR)
+
+src2 = cv.imread("./data_color/matches/test.jpg")
+src2 = cv.resize(src2, dsize=None, fx=fsize, fy=fsize, interpolation=cv.INTER_LINEAR)
+min_x, min_y, w, h = cv.selectROI("selectROI", src2)
+src2 = src2[min_y:(min_y+h), min_x:(min_x+w), :]
+
+cv.imshow("src1", src1)
+cv.imshow("src2_1", src2)
+
+hist_compare(src1, src2)
+cv.waitKey(0)
+cv.destroyAllWindows()

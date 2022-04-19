@@ -6,11 +6,11 @@ start = time.time()
 
 # 最小匹配数
 MIN_MATCH_COUNT = 10
-fsize = 0.25
+fsize = 0.2
 
 # 读取图片并转换成黑白图
-im1 = cv2.imread('../data_test/template/w-hole.jpg', cv2.IMREAD_COLOR)  # trainImage
-im2 = cv2.imread('../data_test/matchs/w-hole-1.bmp', cv2.IMREAD_COLOR)  # queryImage
+im1 = cv2.imread('../data_test/template/point.jpg', cv2.IMREAD_COLOR)  # trainImage
+im2 = cv2.imread('../data_test/matchs/point-1.bmp', cv2.IMREAD_COLOR)  # queryImage
 im1 = cv2.resize(im1, dsize=None, fx=fsize, fy=fsize, interpolation=cv2.INTER_LINEAR)
 im2 = cv2.resize(im2, dsize=None, fx=fsize, fy=fsize, interpolation=cv2.INTER_LINEAR)
 # 直方图归一化，应对白色的头盔(黑色头盔效果不行)
@@ -46,7 +46,7 @@ cv2.imshow("img1", img1)
 cv2.imshow("img2", img2)
 
 # 初始化SIFT特征检测器
-sift = cv2.SIFT_create(500)
+sift = cv2.xfeatures2d.SIFT_create(500)
 # sift = cv2.ORB_create()
 
 # 使用特征检测器找特征点和描述子
