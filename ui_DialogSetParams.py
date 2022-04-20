@@ -179,9 +179,9 @@ class Ui_Dialog(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.doubleSpinBoxResizeTimes.sizePolicy().hasHeightForWidth())
         self.doubleSpinBoxResizeTimes.setSizePolicy(sizePolicy)
-        self.doubleSpinBoxResizeTimes.setDecimals(1)
+        self.doubleSpinBoxResizeTimes.setDecimals(3)
         self.doubleSpinBoxResizeTimes.setMaximum(1.0)
-        self.doubleSpinBoxResizeTimes.setSingleStep(0.1)
+        self.doubleSpinBoxResizeTimes.setSingleStep(0.001)
         self.doubleSpinBoxResizeTimes.setObjectName("doubleSpinBoxResizeTimes")
         self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.doubleSpinBoxResizeTimes)
         self.spinBoxMaxMatches = QtWidgets.QSpinBox(self.frame_2)
@@ -231,6 +231,9 @@ class Ui_Dialog(object):
         self.spinBoxK.setObjectName("spinBoxK")
         self.formLayout.setWidget(8, QtWidgets.QFormLayout.FieldRole, self.spinBoxK)
         self.verticalLayout.addWidget(self.frame_2)
+        self.btnSetDefault = QtWidgets.QPushButton(Dialog)
+        self.btnSetDefault.setObjectName("btnSetDefault")
+        self.verticalLayout.addWidget(self.btnSetDefault)
         self.btnDefault = QtWidgets.QPushButton(Dialog)
         self.btnDefault.setObjectName("btnDefault")
         self.verticalLayout.addWidget(self.btnDefault)
@@ -247,7 +250,7 @@ class Ui_Dialog(object):
         self.verticalLayout_2.addWidget(self.buttonBox)
         self.verticalLayout.addWidget(self.frame)
         self.verticalLayout.setStretch(0, 9)
-        self.verticalLayout.setStretch(2, 1)
+        self.verticalLayout.setStretch(3, 1)
 
         self.retranslateUi(Dialog)
         self.buttonBox.accepted.connect(Dialog.accept)
@@ -266,6 +269,7 @@ class Ui_Dialog(object):
         self.labChecks.setText(_translate("Dialog", "checks"))
         self.labRatio.setText(_translate("Dialog", "ratio"))
         self.labK.setText(_translate("Dialog", "k"))
+        self.btnSetDefault.setText(_translate("Dialog", "设置默认值"))
         self.btnDefault.setText(_translate("Dialog", "恢复默认值"))
 
 

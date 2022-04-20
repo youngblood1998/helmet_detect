@@ -619,54 +619,65 @@
 
 #--------------------------------------------------------------------------------------------
 
-import cv2 as cv
-import numpy as np
-import time
+# import cv2 as cv
+# import numpy as np
+# import time
+#
+#
+# def create_rgb_hist(image):
+#    h, w, c = image.shape
+#    # 创建一个（16*16*16,1）的初始矩阵，作为直方图矩阵
+#    # 16*16*16的意思为三通道每通道有16个bins
+#    rgbhist = np.zeros([16 * 16 * 16, 1], np.float32)
+#    bsize = 256 / 16
+#    for row in range(h):
+#       for col in range(w):
+#          b = image[row, col, 0]
+#          g = image[row, col, 1]
+#          r = image[row, col, 2]
+#          # 人为构建直方图矩阵的索引，该索引是通过每一个像素点的三通道值进行构建
+#          index = int(b / bsize) * 16 * 16 + int(g / bsize) * 16 + int(r / bsize)
+#          # 该处形成的矩阵即为直方图矩阵
+#          rgbhist[int(index), 0] += 1
+#    return rgbhist
+#
+# def hist_compare(image1, image2):
+#    start = time.time()
+#    # 创建第一幅图的rgb三通道直方图（直方图矩阵）
+#    hist1 = create_rgb_hist(image1)
+#    # 创建第二幅图的rgb三通道直方图（直方图矩阵）
+#    hist2 = create_rgb_hist(image2)
+#    # 进行三种方式的直方图比较
+#    match1 = cv.compareHist(hist1, hist2, cv.HISTCMP_BHATTACHARYYA)
+#    match2 = cv.compareHist(hist1, hist2, cv.HISTCMP_CORREL)
+#    match3 = cv.compareHist(hist1, hist2, cv.HISTCMP_CHISQR)
+#    print("巴氏距离：%s, 相关性：%s, 卡方：%s" %(match1, match2, match3))
+#    print(time.time()-start)
+#
+# fsize = 0.1
+#
+# src1 = cv.imread("./data_color/templates/test.jpg")
+# src1 = cv.resize(src1, dsize=None, fx=fsize, fy=fsize, interpolation=cv.INTER_LINEAR)
+#
+# src2 = cv.imread("./data_color/matches/test.jpg")
+# src2 = cv.resize(src2, dsize=None, fx=fsize, fy=fsize, interpolation=cv.INTER_LINEAR)
+# min_x, min_y, w, h = cv.selectROI("selectROI", src2)
+# src2 = src2[min_y:(min_y+h), min_x:(min_x+w), :]
+#
+# cv.imshow("src1", src1)
+# cv.imshow("src2_1", src2)
+#
+# hist_compare(src1, src2)
+# cv.waitKey(0)
+# cv.destroyAllWindows()
 
+# -------------------------------------------------------------------------------------
 
-def create_rgb_hist(image):
-   h, w, c = image.shape
-   # 创建一个（16*16*16,1）的初始矩阵，作为直方图矩阵
-   # 16*16*16的意思为三通道每通道有16个bins
-   rgbhist = np.zeros([16 * 16 * 16, 1], np.float32)
-   bsize = 256 / 16
-   for row in range(h):
-      for col in range(w):
-         b = image[row, col, 0]
-         g = image[row, col, 1]
-         r = image[row, col, 2]
-         # 人为构建直方图矩阵的索引，该索引是通过每一个像素点的三通道值进行构建
-         index = int(b / bsize) * 16 * 16 + int(g / bsize) * 16 + int(r / bsize)
-         # 该处形成的矩阵即为直方图矩阵
-         rgbhist[int(index), 0] += 1
-   return rgbhist
+import cv2
 
-def hist_compare(image1, image2):
-   start = time.time()
-   # 创建第一幅图的rgb三通道直方图（直方图矩阵）
-   hist1 = create_rgb_hist(image1)
-   # 创建第二幅图的rgb三通道直方图（直方图矩阵）
-   hist2 = create_rgb_hist(image2)
-   # 进行三种方式的直方图比较
-   match1 = cv.compareHist(hist1, hist2, cv.HISTCMP_BHATTACHARYYA)
-   match2 = cv.compareHist(hist1, hist2, cv.HISTCMP_CORREL)
-   match3 = cv.compareHist(hist1, hist2, cv.HISTCMP_CHISQR)
-   print("巴氏距离：%s, 相关性：%s, 卡方：%s" %(match1, match2, match3))
-   print(time.time()-start)
-
-fsize = 0.1
-
-src1 = cv.imread("./data_color/templates/test.jpg")
-src1 = cv.resize(src1, dsize=None, fx=fsize, fy=fsize, interpolation=cv.INTER_LINEAR)
-
-src2 = cv.imread("./data_color/matches/test.jpg")
-src2 = cv.resize(src2, dsize=None, fx=fsize, fy=fsize, interpolation=cv.INTER_LINEAR)
-min_x, min_y, w, h = cv.selectROI("selectROI", src2)
-src2 = src2[min_y:(min_y+h), min_x:(min_x+w), :]
-
-cv.imshow("src1", src1)
-cv.imshow("src2_1", src2)
-
-hist_compare(src1, src2)
-cv.waitKey(0)
-cv.destroyAllWindows()
+src = cv2.imread("./data_color/templates/o1.bmp")
+src = cv2.cvtColor(src, cv2.COLOR_BGR2RGB)
+src = cv2.cvtColor(src, cv2.COLOR_RGB2BGR)
+cv2.imshow("test", src)
+cv2.waitKey(0)
+cv2.destroyAllWindows()

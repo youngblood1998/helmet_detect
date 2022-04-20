@@ -81,6 +81,24 @@ class QmyDialogSetParams(QDialog):
       self.ui.doubleSpinBoxRatio.setValue(self.default_params['ratio'])
 
 
+   @pyqtSlot()
+   def on_btnSetDefault_clicked(self):
+      self.default_settings = QSettings("./defaultConfig.ini", QSettings.IniFormat)
+      new_default_params = {
+         'exposure_time': self.ui.spinBoxExposureTime.value(),
+         'trigger_delay': self.ui.spinBoxTriggerDelay.value(),
+         'min_match_count': self.ui.spinBoxMinMatchCount.value(),
+         'resize_times': self.ui.doubleSpinBoxResizeTimes.value(),
+         'max_matches': self.ui.spinBoxMaxMatches.value(),
+         'trees': self.ui.spinBoxTree.value(),
+         'checks': self.ui.spinBoxChecks.value(),
+         'k': self.ui.spinBoxK.value(),
+         'ratio': self.ui.doubleSpinBoxRatio.value()
+      }
+      for param_name in new_default_params:
+         self.default_settings.setValue(param_name, new_default_params[param_name])
+      self.default_params = new_default_params
+
 ##  ==========自定义槽函数===============================
 
 

@@ -90,27 +90,34 @@ class QmyWidget(QWidget):
       self.ui.lineEditPort.setText("8080")
 
       # 默认参数
-      self.default_params = {
+      self.fixed_params = {
          'exposure_time': 10000,
          'trigger_delay': 1000000,
          'min_match_count': 10,
-         'resize_times': 0.3,
+         'resize_times': 0.25,
          'max_matches': 500,
          'trees': 5,
          'checks': 50,
          'k': 2,
-         'ratio': 0.9
+         'ratio': 0.7
       }
 
       self.select_temp = []   # 选择的模板
       self.temp_arr = []   # 选择的模板(包含关键点和描述子)
       self.mythread = None
 
-      # 有无配置文件，没有的话创建并设置默认参数
+      # 有无默认配置文件，没有的话创建并设置默认参数
+      if not os.path.exists('./defaultConfig.ini'):
+         self.default_settings = QSettings("./defaultConfig.ini", QSettings.IniFormat)
+         for param_name in self.fixed_params:
+            self.default_settings.setValue(param_name, self.fixed_params[param_name])
+      self.default_settings = QSettings("./defaultConfig.ini", QSettings.IniFormat)
+
+      # 有无配置文件，没有的话创建并设置参数
       if not os.path.exists('./config.ini'):
          self.settings = QSettings("./config.ini", QSettings.IniFormat)
-         for param_name in self.default_params:
-            self.settings.setValue(param_name, self.default_params[param_name])
+         for param_name in self.fixed_params:
+            self.settings.setValue(param_name, self.default_settings.value(param_name))
       self.settings = QSettings("./config.ini", QSettings.IniFormat)
 
       # 相机回调函数
@@ -635,6 +642,8 @@ class QmyWidget(QWidget):
    def do_selectROI(self, image):
       dsize = 0.25
       rImage = cv2.resize(image, dsize=None, fx=dsize, fy=dsize, interpolation=cv2.INTER_LINEAR)
+      # selectROI和imshow的默认类型是BGR
+      rImage = cv2.cvtColor(rImage, cv2.COLOR_RGB2BGR)
       min_x, min_y, w, h = cv2.selectROI('select_roi', rImage)
       if len(rImage.shape) == 3:
          nImage = image[int(min_y/dsize):int((min_y+h)/dsize), int(min_x/dsize):int((min_x+w)/dsize), :]
@@ -979,6 +988,15 @@ class QmyWidget(QWidget):
    def on_btnSetParams_clicked(self):
       # 跳出参数窗口
       dialogSetParams = QmyDialogSetParams()
+
+      # 用于传输的默认参数
+      self.default_params = {}
+      for param_name in self.fixed_params:
+         if param_name == 'resize_times' or param_name == 'ratio':
+            self.default_params[param_name] = float(self.default_settings.value(param_name))
+         else:
+            self.default_params[param_name] = int(self.default_settings.value(param_name))
+
       dialogSetParams.set_default_params(self.default_params)
       dialogSetParams.set_init_params()
       ret = dialogSetParams.exec()
