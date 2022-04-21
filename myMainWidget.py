@@ -22,6 +22,7 @@ from camera_lib import enumCameras, openCamera, closeCamera, setSoftTriggerConf,
    setLineTriggerConf
 # from detect_lib.sift_flann_new import SiftFlann
 from detect_lib.surf_bf_new import SurfBf
+from detect_lib.hist_compare import hist_compare
 from myDialogMakeTemp import QmyDialogMakeTemp
 from myDialogSetParams import QmyDialogSetParams
 from myDialogSelectTemp import QmyDialogSelectTemp
@@ -44,7 +45,10 @@ class Runthread(QThread):
       self.client_socket = None
 
    def __del__(self):
-      self.wait()
+      try:
+         self.wait()
+      except:
+         pass
 
    def run(self):
       try:
@@ -96,6 +100,8 @@ class QmyWidget(QWidget):
          'min_match_count': 10,
          'resize_times': 0.25,
          'max_matches': 500,
+         'hist1': 0.4,
+         'hist2': 0.8,
          'trees': 5,
          'checks': 50,
          'k': 2,
@@ -284,11 +290,28 @@ class QmyWidget(QWidget):
                        trees=int(self.settings.value("trees")),
                        checks=int(self.settings.value("checks")),
                        k=int(self.settings.value("k")),
-                       ratio=float(self.settings.value("ratio"))
+                       ratio=float(self.settings.value("ratio")),
+                       hist2=float(self.settings.value("hist2"))
                        )
       # kp2, des2 = self.do_createDes(cvtImage)
+
+      # 直方图对比过滤模板
+      if len(cvImage.shape) == 3:
+         resize_cvtImage = cv2.resize(cvtImage, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+         height = resize_cvtImage.shape[0]
+         width = resize_cvtImage.shape[1]
+         resize_cvtImage = resize_cvtImage[int(height*0.4):int(height*0.6),int(width*0.4):int(width*0.6),:]
+         detect_temp_arr = []
+         for detect_temp in self.temp_arr:
+            resize_detect_temp = cv2.resize(detect_temp['image'], dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+            match = hist_compare(resize_cvtImage, resize_detect_temp)
+            if match > float(self.settings.value('hist1')):
+               detect_temp_arr.append(detect_temp)
+      else:
+         detect_temp_arr = self.temp_arr
+
       # 返回结果，模板、方向、画出匹配框的图像
-      result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage)
+      result, dir, imageDraw, angle, x, y = surf.match(detect_temp_arr, cvtImage)
 
       # 匹配结果不为空，则显示输入输出图像
       if not result is None:
@@ -992,7 +1015,7 @@ class QmyWidget(QWidget):
       # 用于传输的默认参数
       self.default_params = {}
       for param_name in self.fixed_params:
-         if param_name == 'resize_times' or param_name == 'ratio':
+         if param_name == 'resize_times' or param_name == 'ratio' or param_name == 'hist1' or param_name == 'hist2':
             self.default_params[param_name] = float(self.default_settings.value(param_name))
          else:
             self.default_params[param_name] = int(self.default_settings.value(param_name))

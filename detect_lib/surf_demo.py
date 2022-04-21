@@ -7,8 +7,8 @@ start = time.time()
 MIN_MATCH_COUNT = 10
 fsize = 0.2
 
-im1 = cv2.imread('../data_test/template/point.jpg', cv2.IMREAD_COLOR)
-im2 = cv2.imread('../data_test/matchs/point-1.bmp', cv2.IMREAD_COLOR)  # queryImage
+im1 = cv2.imread('../data_test/template/butterfly.jpg', cv2.IMREAD_COLOR)
+im2 = cv2.imread('../data_test/matchs/butterfly-2.bmp', cv2.IMREAD_COLOR)  # queryImage
 # im1 = cv2.imread('./data_color/templates/o1.bmp', cv2.IMREAD_COLOR)
 # im2 = cv2.imread('./data_color/matches/o1-1.bmp', cv2.IMREAD_COLOR)  # queryImage
 im1 = cv2.resize(im1, dsize=None, fx=fsize, fy=fsize, interpolation=cv2.INTER_LINEAR)
@@ -88,6 +88,17 @@ if len(good) > MIN_MATCH_COUNT:
     pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
     # 对这个轮廓图执行透视变换
     dst = cv2.perspectiveTransform(pts, M)
+    print(dst)
+    p_0 = dst[0][0]
+    p_1 = dst[1][0]
+    p_2 = dst[2][0]
+    p_3 = dst[3][0]
+    print(p_0, p_1, p_2, p_3)
+    min_y = int((p_1[1] + p_2[1]) / 2)
+    max_y = int((p_0[1] + p_3[1]) / 2)
+    min_x = int((p_2[0] + p_3[0]) / 2)
+    max_x = int((p_0[0] + p_1[0]) / 2)
+    cv2.imshow("cut", im2[min(min_y, max_y):max(min_y, max_y),min(min_x, max_x):max(min_x, max_x),:])
     # 将透视变换后的点连成封闭的线框绘制到trainImage上。
     im2 = cv2.polylines(im2, [np.int32(dst)], True, (255, 0, 0), 3, cv2.LINE_AA)
 

@@ -2,11 +2,12 @@
 import numpy as np
 import cv2
 from detect_lib.calculate_area import CalArea
+from detect_lib.hist_compare import hist_compare
 
 
 class SurfBf:
     def __init__(self, min_match_count=10, resize_times=0.3, max_matches=500, flann_index_kdtree=0,
-                 trees=5, checks=50, k=2, ratio=0.9):
+                 trees=5, checks=50, k=2, ratio=0.9, hist2=0.8):
         self.min_match_count = min_match_count  # 最小匹配数
         self.resize_times = resize_times    # 大小变换的倍数，越小越快越不准
         self.max_matches = max_matches  # 最大特征点数
@@ -15,6 +16,7 @@ class SurfBf:
         self.checks = checks
         self.k = k  # 匹配取前k个
         self.ratio = ratio  # 距离比例
+        self.hist2 = hist2  # 颜色对比度
 
 
     def surf_bf(self, im1, kp1, des1, im2):
@@ -81,6 +83,21 @@ class SurfBf:
             # 对这个轮廓图执行透视变换
             # print(M)
             dst = np.int32(cv2.perspectiveTransform(pts, M))
+
+            # 截取图片做颜色对比
+            p_0 = dst[0][0]
+            p_1 = dst[1][0]
+            p_2 = dst[2][0]
+            p_3 = dst[3][0]
+            min_y = int((p_1[1] + p_2[1]) / 2)
+            max_y = int((p_0[1] + p_3[1]) / 2)
+            min_x = int((p_2[0] + p_3[0]) / 2)
+            max_x = int((p_0[0] + p_1[0]) / 2)
+            resize = round(0.1/self.resize_times, 2)
+            resize_im2 = cv2.resize(im2[min(min_y, max_y):max(min_y, max_y), min(min_x, max_x):max(min_x, max_x), :], dsize=None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
+            resize_im1 = cv2.resize(im1, dsize=None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
+            if hist_compare(resize_im2, resize_im1) < self.hist2:
+                return 0, [], None
         else:
             # 匹配上的点太少
             dst = []
