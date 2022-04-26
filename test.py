@@ -339,22 +339,22 @@
 
 #-----------------------------------------------------------------------
 #
-# from detect_lib.surf_bf import SurfBf
-# import cv2
-# import time
-#
-#
-# if __name__ == '__main__':
-#     pwd = "./data_test/template/"
-#     img_arr = ["b-l", "b-m", "b-s", "butterfly", "core", "p-hole", "point", "w-hole", "w-l", "w-m"]
-#     temp_arr = [pwd+img+".jpg" for img in img_arr]
-#     start = time.time()
-#     match = cv2.imread("./data_test/matchs/w-m-1.bmp")
-#
-#     surf = SurfBf(resize_times=0.2)
-#     result, angle = surf.match(temp_arr, match)
-#     print(time.time()-start)
-#     print(result, angle)
+from detect_lib.surf_bf import SurfBf
+import cv2
+import time
+
+
+if __name__ == '__main__':
+    pwd = "./data_test/template_color/"
+    img_arr = ["b-l","b-m","b-s", "but", "core", "pink", "point", "w-half", "w-l", "w-m"]
+    temp_arr = [pwd+img+".bmp" for img in img_arr]
+    start = time.time()
+    match = cv2.imread("./data_test/matchs_color/b-s-1.bmp")
+
+    surf = SurfBf(resize_times=0.1)
+    result, angle = surf.match(temp_arr, match)
+    print(time.time()-start)
+    print(result, angle)
 
 #----------------------------------------------------------------
 # a = {'l': 1}
@@ -672,30 +672,30 @@
 # cv.destroyAllWindows()
 
 #------------------------------------------------------------------------------------
-
-import cv2 as cv
-from detect_lib.hist_compare import hist_compare
-
-fsize = 0.1
-
-src1 = cv.imread("./data_color/templates/test.jpg")
-src1 = cv.resize(src1, dsize=None, fx=fsize, fy=fsize, interpolation=cv.INTER_LINEAR)
-
-src2 = cv.imread("./data_color/matches/test.jpg")
-src2 = cv.resize(src2, dsize=None, fx=fsize, fy=fsize, interpolation=cv.INTER_LINEAR)
-# min_x, min_y, w, h = cv.selectROI("selectROI", src2)
-# src2 = src2[min_y:(min_y+h), min_x:(min_x+w), :]
-# min_x, min_y, w, h = cv.selectROI("selectROI", src2)
-height = src2.shape[0]
-width = src2.shape[1]
-src2 = src2[int(height*0.4):int(height*0.6),int(width*0.4):int(width*0.6),:]
-
-cv.imshow("src1", src1)
-cv.imshow("src2_1", src2)
-
-print(hist_compare(src1, src2))
-cv.waitKey(0)
-cv.destroyAllWindows()
+#
+# import cv2 as cv
+# from detect_lib.hist_compare import hist_compare
+#
+# fsize = 0.1
+#
+# src1 = cv.imread("./data_color/templates/test.jpg")
+# src1 = cv.resize(src1, dsize=None, fx=fsize, fy=fsize, interpolation=cv.INTER_LINEAR)
+#
+# src2 = cv.imread("./data_color/matches/test.jpg")
+# src2 = cv.resize(src2, dsize=None, fx=fsize, fy=fsize, interpolation=cv.INTER_LINEAR)
+# # min_x, min_y, w, h = cv.selectROI("selectROI", src2)
+# # src2 = src2[min_y:(min_y+h), min_x:(min_x+w), :]
+# # min_x, min_y, w, h = cv.selectROI("selectROI", src2)
+# height = src2.shape[0]
+# width = src2.shape[1]
+# src2 = src2[int(height*0.4):int(height*0.6),int(width*0.4):int(width*0.6),:]
+#
+# cv.imshow("src1", src1)
+# cv.imshow("src2_1", src2)
+#
+# print(hist_compare(src1, src2))
+# cv.waitKey(0)
+# cv.destroyAllWindows()
 
 # -------------------------------------------------------------------------------------
 

@@ -93,7 +93,12 @@ class SurfBf:
             max_y = int((p_0[1] + p_3[1]) / 2)
             min_x = int((p_2[0] + p_3[0]) / 2)
             max_x = int((p_0[0] + p_1[0]) / 2)
-            resize = round(0.1/self.resize_times, 2)
+            resize = round(0.05/self.resize_times, 2)
+            # 特殊情况过滤
+            if min(min_x, min_y, max_x, max_y) < 0:
+                return 0, [], None
+            if max(min_y, max_y)-min(min_y, max_y)<10 or max(min_x, max_x)-min(min_x, max_x)<10:
+                return 0, [], None
             resize_im2 = cv2.resize(im2[min(min_y, max_y):max(min_y, max_y), min(min_x, max_x):max(min_x, max_x), :], dsize=None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
             resize_im1 = cv2.resize(im1, dsize=None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
             if hist_compare(resize_im2, resize_im1) < self.hist2:
@@ -110,20 +115,20 @@ class SurfBf:
 
     def match(self, temp_arr, im2):
         # 最多的匹配点个数
-        max_matches = 0
+        # max_matches = 0
         min_area_ratio = 1
         best_match = None
         draw_point = []
         best_temp = None
         angles = []
         # 读取被匹配的图片
-        print(im2.shape)
+        # print(im2.shape)
         im2 = cv2.resize(im2, dsize=None, fx=self.resize_times, fy=self.resize_times, interpolation=cv2.INTER_LINEAR)
         # 在模板中找最佳匹配
         for temp in temp_arr:
             # 读取并调整大小
             im1 = temp["image"]
-            print(im1.shape)
+            # print(im1.shape)
             im1 = cv2.resize(im1, dsize=None, fx=self.resize_times, fy=self.resize_times,
                              interpolation=cv2.INTER_LINEAR)
             # 模板图片的宽高和面积
@@ -154,6 +159,7 @@ class SurfBf:
 
             area_ratio = float(abs(area2-area1))/area2
             print(area_ratio)
+            print(temp['model'])
             # 选择最好的匹配
             if area_ratio < min_area_ratio:
                 min_area_ratio = area_ratio
@@ -170,7 +176,7 @@ class SurfBf:
             #     angles = cal.rotationMatrix_to_eulerAngles(matrix)  # 角度
         if best_match is None:
             # print("匹配不到该物体")
-            return None, 0, []
+            return None, 0, [], 0, 0, 0
         # 把匹配的框画进去，并表示出来
         im2 = cv2.polylines(im2, [np.int32(draw_point)], True, (255, 0, 0), 3, cv2.LINE_AA)
         # cv2.imshow("template", best_match)
