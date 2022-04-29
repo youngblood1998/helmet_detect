@@ -834,7 +834,7 @@ class QmyWidget(QWidget):
    @pyqtSlot()
    def on_btnDetectCamera_clicked(self):
       start = time.time()
-      cvImage = cv2.imread("./data_test/matchs_color/core-2.bmp")
+      cvImage = cv2.imread("./data_test/matchs_color/but-2.bmp")
       # 格式转换
       if len(cvImage.shape) == 3:
          cvtImage = cv2.cvtColor(cvImage, cv2.COLOR_BGR2RGB)
@@ -975,7 +975,7 @@ class QmyWidget(QWidget):
          if self.mythread:
             string = ";" + ";" + ";" + str(-1) + ";" + str(0) + ";" + str(0) + ";" + str(0)
             self.mythread.send(string)
-      print(time.time()-start)
+      # print(time.time()-start)
       gc.collect()
       # # 发现相机
       # cameraCnt, cameraList = enumCameras()

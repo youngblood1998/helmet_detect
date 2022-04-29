@@ -1,4 +1,6 @@
 # import numpy
+import copy
+
 import numpy as np
 import cv2
 from detect_lib.calculate_area import CalArea
@@ -33,6 +35,7 @@ class SurfBf:
             img2 = cv2.cvtColor(im2, cv2.COLOR_RGB2GRAY)
         else:
             img2 = im2
+            # img2 = copy.deepcopy(im2)
 
         # 限制对比度的自适应阈值均衡化
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
@@ -54,6 +57,7 @@ class SurfBf:
         bf = cv2.BFMatcher()
 
         if des2 is None:
+            print("没有描述子")
             return 0, [], None
 
         # 执行匹配
@@ -74,7 +78,7 @@ class SurfBf:
             # 使用findHomography并结合RANSAC算法，避免一些错误的点对结果产生影响
             M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
             if M is None:
-                # print("M is None")
+                print("没有转换矩阵")
                 # print("-" * 50)
                 return 0, [], None
             h, w = im1.shape[0], im1.shape[1]
@@ -94,16 +98,33 @@ class SurfBf:
             min_x = int((p_2[0] + p_3[0]) / 2)
             max_x = int((p_0[0] + p_1[0]) / 2)
             resize = round(0.05/self.resize_times, 2)
+
+            im2_h, im2_w = im2.shape[0], im2.shape[1]
+            x_1 = min(min_x, max_x) if min(min_x, max_x) >= 0 else 0
+            x_2 = max(min_x, max_x) if max(min_x, max_x) <= im2_w else im2_w
+            y_1 = min(min_y, max_y) if min(min_y, max_y) >= 0 else 0
+            y_2 = max(min_y, max_y) if max(min_y, max_y) <= im2_h else im2_h
             # 特殊情况过滤
-            if min(min_x, min_y, max_x, max_y) < 0:
+            if x_2-x_1<10 or y_2-y_1<10:
+                print("截取图过小")
+                print(x_2-x_1, y_2-y_1)
                 return 0, [], None
-            if max(min_y, max_y)-min(min_y, max_y)<10 or max(min_x, max_x)-min(min_x, max_x)<10:
-                return 0, [], None
-            resize_im2 = cv2.resize(im2[min(min_y, max_y):max(min_y, max_y), min(min_x, max_x):max(min_x, max_x), :], dsize=None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
+            # if min(min_x, max_x) < 0 or min(min_y, max_y) < 0 or max(min_x, max_x) > im2_w or min(min_y, max_y) > im2_h:
+            #     print("有点在图外")
+            #     print(min_x, min_y, max_x, max_y)
+            #     return 0, [], None
+            # if max(min_y, max_y)-min(min_y, max_y)<10 or max(min_x, max_x)-min(min_x, max_x)<10:
+            #     print("截取图过小")
+            #     print(max(min_y, max_y)-min(min_y, max_y), max(min_x, max_x)-min(min_x, max_x))
+            #     return 0, [], None
+            resize_im2 = cv2.resize(im2[y_1:y_2, x_1:x_2, :], dsize=None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
             resize_im1 = cv2.resize(im1, dsize=None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
+            # print(hist_compare(resize_im2, resize_im1))
             if hist_compare(resize_im2, resize_im1) < self.hist2:
+                print("颜色不匹配："+str(hist_compare(resize_im2, resize_im1)))
                 return 0, [], None
         else:
+            print("对应点太少："+str(len(good)))
             # 匹配上的点太少
             dst = []
             M = None
@@ -155,6 +176,7 @@ class SurfBf:
             #     continue
             # 面积不合适直接跳过
             if area2 < 0.8*area1 or area2 > 1.25*area1:
+                print("面积不匹配")
                 continue
 
             area_ratio = float(abs(area2-area1))/area2
@@ -175,7 +197,7 @@ class SurfBf:
             #     best_temp = temp    # 最好模板的路径
             #     angles = cal.rotationMatrix_to_eulerAngles(matrix)  # 角度
         if best_match is None:
-            # print("匹配不到该物体")
+            print("匹配不到该物体")
             return None, 0, [], 0, 0, 0
         # 把匹配的框画进去，并表示出来
         im2 = cv2.polylines(im2, [np.int32(draw_point)], True, (255, 0, 0), 3, cv2.LINE_AA)

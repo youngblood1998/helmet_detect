@@ -339,22 +339,22 @@
 
 #-----------------------------------------------------------------------
 #
-from detect_lib.surf_bf import SurfBf
-import cv2
-import time
-
-
-if __name__ == '__main__':
-    pwd = "./data_test/template_color/"
-    img_arr = ["b-l","b-m","b-s", "but", "core", "pink", "point", "w-half", "w-l", "w-m"]
-    temp_arr = [pwd+img+".bmp" for img in img_arr]
-    start = time.time()
-    match = cv2.imread("./data_test/matchs_color/b-s-1.bmp")
-
-    surf = SurfBf(resize_times=0.1)
-    result, angle = surf.match(temp_arr, match)
-    print(time.time()-start)
-    print(result, angle)
+# from detect_lib.surf_bf import SurfBf
+# import cv2
+# import time
+#
+#
+# if __name__ == '__main__':
+#     pwd = "./data_test/template_color/"
+#     img_arr = ["b-l","b-m","b-s", "but", "core", "pink", "point", "w-half", "w-l", "w-m"]
+#     temp_arr = [pwd+img+".bmp" for img in img_arr]
+#     start = time.time()
+#     match = cv2.imread("./data_test/matchs_color/b-s-1.bmp")
+#
+#     surf = SurfBf(resize_times=0.1)
+#     result, angle = surf.match(temp_arr, match)
+#     print(time.time()-start)
+#     print(result, angle)
 
 #----------------------------------------------------------------
 # a = {'l': 1}
@@ -707,3 +707,30 @@ if __name__ == '__main__':
 # cv2.imshow("test", src)
 # cv2.waitKey(0)
 # cv2.destroyAllWindows()
+
+#----------------------------------------------------------------------
+
+# from relay import test
+#
+# test()
+
+#------------------------------------------------------------
+# import cv2
+#
+# img = cv2.imread("./data_test/template_color/but.bmp")
+# h, w = img.shape[0], img.shape[1]
+#
+# img1 = cv2.resize(img[h+10:h+100, w+10:w+100], dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+# cv2.imshow("resize", img1)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
+#-------------------------------------------------------------
+import cv2
+
+img = cv2.imread("./data_test/matchs_color/but-2.bmp")
+h, w = img.shape[0], img.shape[1]
+
+img1 = cv2.resize(img, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+cv2.imshow("resize", img1)
+cv2.waitKey(0)
+cv2.destroyAllWindows()

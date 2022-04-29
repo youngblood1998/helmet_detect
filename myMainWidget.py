@@ -741,12 +741,6 @@ class QmyWidget(QWidget):
          print("attachGrabbingEx fail!")
          return -1
 
-      # 设置曝光时间
-      nRet = setExposureTime(self.camera, int(self.settings.value("exposure_time")))
-      if (nRet != 0):
-         print("set ExposureTime fail")
-         return -1
-
       # 设置外触发
       nRet = setLineTriggerConf(self.camera, int(self.settings.value("trigger_delay")))
       if (nRet != 0):
@@ -754,6 +748,12 @@ class QmyWidget(QWidget):
          return -1
       else:
          print("set LineTriggerConf success!")
+
+      # 设置曝光时间
+      nRet = setExposureTime(self.camera, int(self.settings.value("exposure_time")))
+      if (nRet != 0):
+         print("set ExposureTime fail")
+         return -1
 
       # 开始拉流
       nRet = self.streamSource.contents.startGrabbing(self.streamSource, c_ulonglong(0), \
@@ -1055,6 +1055,7 @@ class QmyWidget(QWidget):
          self.select_temp = dialogSelectTemp.get_temp()
          # print(len(self.select_temp))
          self.temp_arr = self.do_selectTempArr()
+         print("选择了"+str(len(self.temp_arr))+"模板")
       # print(len(self.temp_arr))
       # for i in self.temp_arr:
       #    print(i["des"])
