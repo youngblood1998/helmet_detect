@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # import copy
+import ctypes
 import datetime
 import gc
 import os
@@ -22,6 +23,7 @@ from camera_lib import enumCameras, openCamera, closeCamera, setSoftTriggerConf,
    setLineTriggerConf
 # from detect_lib.sift_flann_new import SiftFlann
 from detect_lib.surf_bf_new import SurfBf
+from relay_lib import init_relay, close_relay, test_delay
 from detect_lib.hist_compare import hist_compare
 from myDialogMakeTemp import QmyDialogMakeTemp
 from myDialogSetParams import QmyDialogSetParams
@@ -35,6 +37,7 @@ from ui_MainWidget import Ui_Form as Ui_Widget
 ##from PyQt5.QtMultimedia import
 ##from PyQt5.QtMultimediaWidgets import
 
+# TCP线程
 class Runthread(QThread):
    #  通过类成员对象定义信号对象
    signal = pyqtSignal(int)
@@ -70,6 +73,29 @@ class Runthread(QThread):
          self.client_socket.send(string.encode('utf-8'))
 
 
+# 继电器测试的线程
+class Relaythread(QThread):
+   #  通过类成员对象定义信号对象
+   signal_1 = pyqtSignal(int)
+
+   def __init__(self, relay_dic):
+      super(Relaythread, self).__init__()
+      self.relay_dic = relay_dic
+
+   def __del__(self):
+      try:
+         self.wait()
+      except:
+         pass
+
+   def run(self):
+      try:
+         test_delay(self.relay_dic)
+         self.signal_1.emit(1)
+      except:
+         return
+
+
 class QmyWidget(QWidget):
 
    def __init__(self, parent=None):
@@ -89,6 +115,8 @@ class QmyWidget(QWidget):
       self.ui.btnStopDetect.setEnabled(False)
       self.ui.btnMakeTemp.setEnabled(False)
       self.ui.btnTCPClose.setEnabled(False)
+      self.ui.btnCloseRelay.setEnabled(False)
+      self.ui.btnTestRelay.setEnabled(False)
       default_ip = gethostbyname(gethostname())
       self.ui.lineEditAdr.setText(default_ip)
       self.ui.lineEditPort.setText("8080")
@@ -810,6 +838,11 @@ class QmyWidget(QWidget):
       self.tcp_flag = True
 
 
+   def do_testRelay_finish(self):
+      self.ui.btnCloseRelay.setEnabled(True)
+      self.ui.btnTestRelay.setEnabled(True)
+
+
 ##  ==============event处理函数==========================
    # 关闭事件
    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
@@ -1151,6 +1184,55 @@ class QmyWidget(QWidget):
       self.ui.btnTCPOpen.setEnabled(True)
 
       self.mythread = None
+
+
+   # 打开继电器
+   @pyqtSlot()
+   def on_btnOpenRelay_clicked(self):
+      self.relay_dic = init_relay()
+      print(self.relay_dic)
+      if len(self.relay_dic) != 0:
+         num = 0
+         for key, value in self.relay_dic.items():
+            num += value-1
+         label = self.ui.labRelay
+         label.setStyleSheet('color: green')
+         label.setText(str(len(self.relay_dic))+"个继电器,"+str(num)+"个端口")
+
+         self.ui.btnOpenRelay.setEnabled(False)
+         self.ui.btnCloseRelay.setEnabled(True)
+         self.ui.btnTestRelay.setEnabled(True)
+      else:
+         label = self.ui.labRelay
+         label.setStyleSheet('color: red')
+         label.setText("未检测到继电器")
+
+
+   # 关闭继电器
+   @pyqtSlot()
+   def on_btnCloseRelay_clicked(self):
+      close_relay(self.relay_dic)
+
+      label = self.ui.labRelay
+      label.setStyleSheet('color: black')
+      label.setText("未开启")
+
+      self.ui.btnOpenRelay.setEnabled(True)
+      self.ui.btnCloseRelay.setEnabled(False)
+      self.ui.btnTestRelay.setEnabled(False)
+
+
+   # 测试继电器
+   @pyqtSlot()
+   def on_btnTestRelay_clicked(self):
+      # 在检测中则不能测试继电器
+      if self.detect_flag:
+         return
+      self.ui.btnCloseRelay.setEnabled(False)
+      self.ui.btnTestRelay.setEnabled(False)
+      self.relay_thread = Relaythread(self.relay_dic)
+      self.relay_thread.signal_1.connect(self.do_testRelay_finish)
+      self.relay_thread.start()
 
 
 ##  =============自定义槽函数===============================

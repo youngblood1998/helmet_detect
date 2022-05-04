@@ -710,9 +710,9 @@
 
 #----------------------------------------------------------------------
 
-# from relay import test
-#
-# test()
+from relay import test, test1, test2
+
+test2()
 
 #------------------------------------------------------------
 # import cv2
@@ -725,12 +725,12 @@
 # cv2.waitKey(0)
 # cv2.destroyAllWindows()
 #-------------------------------------------------------------
-import cv2
-
-img = cv2.imread("./data_test/matchs_color/but-2.bmp")
-h, w = img.shape[0], img.shape[1]
-
-img1 = cv2.resize(img, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
-cv2.imshow("resize", img1)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+# import cv2
+#
+# img = cv2.imread("./data_test/matchs_color/but-2.bmp")
+# h, w = img.shape[0], img.shape[1]
+#
+# img1 = cv2.resize(img, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+# cv2.imshow("resize", img1)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
