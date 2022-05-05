@@ -8,6 +8,8 @@ import os
 import sys
 import sqlite3
 # import time
+import time
+
 import cv2
 import numpy
 import csv
@@ -878,31 +880,157 @@ class QmyWidget(QWidget):
    # 检测相机
    @pyqtSlot()
    def on_btnDetectCamera_clicked(self):
-      # 发现相机
-      cameraCnt, cameraList = enumCameras()
-      if cameraCnt is None:
-         # 设置标签
-         label = self.ui.labDetectCamera
-         label.setStyleSheet('color: red')
-         label.setText("检测不到相机")
+      start = time.time()
+      cvImage = cv2.imread("./data_test/matchs_color/point-2.bmp")
+      # 格式转换
+      if len(cvImage.shape) == 3:
+         cvtImage = cv2.cvtColor(cvImage, cv2.COLOR_BGR2RGB)
       else:
-         # 设置标签
-         label = self.ui.labDetectCamera
-         label.setStyleSheet('color: green')
-         label.setText("检测到相机")
-         # 显示相机信息
-         for index in range(0, cameraCnt):
-            camera = cameraList[index]
-            print("\nCamera Id = " + str(index))
-            print("Key           = " + str(camera.getKey(camera)))
-            print("vendor name   = " + str(camera.getVendorName(camera)))
-            print("Model  name   = " + str(camera.getModelName(camera)))
-            print("Serial number = " + str(camera.getSerialNumber(camera)))
-         self.camera = cameraList[0]
+         cvtImage = cv2.cvtColor(cvImage, cv2.COLOR_GRAY2RGB)
 
-         # 连接相机按钮设为使能
-         if not self.camera_flag:
-            self.ui.btnLinkCamera.setEnabled(True)
+      # 显示输入
+      try:
+         qt_image = QtGui.QImage(cvtImage.data,
+                                 cvtImage.shape[1],
+                                 cvtImage.shape[0],
+                                 cvtImage.shape[1] * 3,
+                                 QtGui.QImage.Format.Format_RGB888)
+
+         w = cvtImage.shape[1]  # 图像宽度
+         h = cvtImage.shape[0]  # 图像高度
+         W = self.ui.labInput.size().width()  # 显示框的宽度
+         H = self.ui.labInput.size().height()  # 显示框的高度
+
+         # 自适应图像宽高
+         if float(H) / h > float(W) / w:
+            self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToWidth(W))
+         else:
+            self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
+      except Exception as e:
+         QMessageBox.warning(self, "警告", "图片输入出错")
+
+      # 清空输入图像和输出图像
+      self.ui.labOutput.clear()
+      self.ui.label_2.clear()
+
+      # # 检测
+      # sift = SiftFlann(min_match_count=int(self.settings.value("min_match_count")),
+      #                  resize_times=float(self.settings.value("resize_times")),
+      #                  max_matches=int(self.settings.value("max_matches")),
+      #                  trees=int(self.settings.value("trees")),
+      #                  checks=int(self.settings.value("checks")),
+      #                  k=int(self.settings.value("k")),
+      #                  ratio=float(self.settings.value("ratio"))
+      #                  )
+      # # kp2, des2 = self.do_createDes(cvtImage)
+      # # 返回结果，模板、方向、画出匹配框的图像
+      # result, dir, imageDraw, angle, x, y = sift.match(self.temp_arr, cvtImage)
+
+      # 检测
+      surf = SurfBf(min_match_count=int(self.settings.value("min_match_count")),
+                    resize_times=float(self.settings.value("resize_times")),
+                    max_matches=int(self.settings.value("max_matches")),
+                    trees=int(self.settings.value("trees")),
+                    checks=int(self.settings.value("checks")),
+                    k=int(self.settings.value("k")),
+                    ratio=float(self.settings.value("ratio")),
+                    hist2=float(self.settings.value("hist2"))
+                    )
+      # kp2, des2 = self.do_createDes(cvtImage)
+
+      # # 直方图对比过滤模板
+      # if len(cvImage.shape) == 3:
+      #    resize_cvtImage = cv2.resize(cvtImage, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+      #    height = resize_cvtImage.shape[0]
+      #    width = resize_cvtImage.shape[1]
+      #    resize_cvtImage = resize_cvtImage[int(height*0.4):int(height*0.6),int(width*0.4):int(width*0.6),:]
+      #    detect_temp_arr = []
+      #    for detect_temp in self.temp_arr:
+      #       resize_detect_temp = cv2.resize(detect_temp['image'], dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+      #       match = hist_compare(resize_cvtImage, resize_detect_temp)
+      #       if match > float(self.settings.value('hist1')):
+      #          detect_temp_arr.append(detect_temp)
+      # else:
+      #    detect_temp_arr = self.temp_arr
+      #
+      # # 返回结果，模板、方向、画出匹配框的图像
+      # result, dir, imageDraw, angle, x, y = surf.match(detect_temp_arr, cvtImage)
+      result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage)
+
+      # 匹配结果不为空，则显示输入输出图像
+      if not result is None:
+         print(result["model"])
+         # 显示画出匹配框的图像
+         try:
+            qt_image = QtGui.QImage(imageDraw.data,
+                                    imageDraw.shape[1],
+                                    imageDraw.shape[0],
+                                    imageDraw.shape[1] * 3,
+                                    QtGui.QImage.Format.Format_RGB888)
+
+            w = imageDraw.shape[1]
+            h = imageDraw.shape[0]
+            W = self.ui.labInput.size().width()
+            H = self.ui.labInput.size().height()
+
+            if float(H) / h > float(W) / w:
+               self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToWidth(W))
+            else:
+               self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
+         except Exception as e:
+            QMessageBox.warning(self, "警告", "图片输入出错")
+         # 显示输出图像
+         image = result["image"]
+         try:
+            qt_image = QtGui.QImage(image.data,
+                                    image.shape[1],
+                                    image.shape[0],
+                                    image.shape[1] * 3,
+                                    QtGui.QImage.Format.Format_RGB888)
+
+            w = image.shape[1]
+            h = image.shape[0]
+            W = self.ui.labOutput.size().width()
+            H = self.ui.labOutput.size().height()
+
+            if float(H) / h > float(W) / w:
+               self.ui.labOutput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToWidth(W))
+            else:
+               self.ui.labOutput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
+         except Exception as e:
+            QMessageBox.warning(self, "警告", "图片输入出错")
+
+         # 显示输出信息
+         label = self.ui.label_2
+         label.setStyleSheet('color: green')
+         s = "前" if dir == 0 else "后"
+         label.setText("型号：" + result["model"] + "；\t尺寸:" + result["size"] + "；\t方向：" + str(s))
+         # self.ui.label_2.setText("型号："+result["model"]+"；尺寸:"+result["size"]+"；方向："+angle)
+         # 写入csv
+         self.write_csv(result["model"], result["size"], result["color"], True, x, y, angle)
+         # 传输数据
+         if self.mythread:
+            string = result["model"] + ";" + result["size"] + ";" + result["color"] + ";" + str(dir) + ";" + str(
+               x) + ";" + str(y) + ";" + str(angle)
+            self.mythread.send(string)
+         # 继电器输出
+         if self.relay_flag:
+            export_relay(self.relay_dic, result["port"])
+      else:
+         label = self.ui.label_2
+         label.setStyleSheet('color: red')
+         self.ui.label_2.setText("无匹配结果")
+         # 写入csv
+         self.write_csv("", "", "", False, 0, 0, 0)
+         # 传输数据
+         if self.mythread:
+            string = ";" + ";" + ";" + str(-1) + ";" + str(0) + ";" + str(0) + ";" + str(0)
+            self.mythread.send(string)
+         # 继电器输出
+         if self.relay_flag:
+            export_relay(self.relay_dic, self.num)
+      # print(time.time()-start)
+      gc.collect()
 
 
    # 连接相机

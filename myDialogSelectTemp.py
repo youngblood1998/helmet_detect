@@ -24,6 +24,7 @@ from PyQt5.QtSql import QSqlDatabase, QSqlTableModel
 
 
 from ui_DialogSelectTemp import Ui_Dialog
+from myDelegate import QmyComboBoxDelegate
 
 
 class QmyDialogSelectTemp(QDialog):
@@ -31,6 +32,8 @@ class QmyDialogSelectTemp(QDialog):
       super().__init__(parent)  # 调用父类构造函数，创建窗体
       self.ui = Ui_Dialog()  # 创建UI对象
       self.ui.setupUi(self)  # 构造UI界面
+
+      self.num = 0
 
       self.ui.lineEditSearch.setPlaceholderText("输入型号后点击过滤")
       self.ui.btnSave.setEnabled(False)
@@ -44,13 +47,16 @@ class QmyDialogSelectTemp(QDialog):
 
 ##  ============自定义功能函数========================
    # 已选择的模板
-   def set_temp(self, select_temp):
+   def set_temp(self, select_temp, num):
       self.selectedTemp = copy.deepcopy(select_temp)
+      self.num = num
       # print(len(self.selectedTemp[0]))
 
 
    # 返回选择的模板
    def get_temp(self):
+      for i in range(len(self.selectedTemp)):
+         self.selectedTemp[i]["port"] = self.ui.tableWidgetSelectTemp.item(i, 0).text()
       return copy.deepcopy(self.selectedTemp)
 
 
@@ -115,11 +121,17 @@ class QmyDialogSelectTemp(QDialog):
       self.ui.tableWidgetSelectTemp.clearContents()
       # 展示已选模板
       for t in self.selectedTemp:
-         column = 0
+
+         column = 1
          row = self.ui.tableWidgetSelectTemp.rowCount()
          self.ui.tableWidgetSelectTemp.insertRow(row)
+
+         # 端口
+         item = QTableWidgetItem(str(t["port"]))
+         self.ui.tableWidgetSelectTemp.setItem(row, 0, item)
+
          for index in t:
-            if column == 6:
+            if column == 7:
                break
             item = QTableWidgetItem(str(t[index]))
             self.ui.tableWidgetSelectTemp.setItem(row, column, item)
@@ -153,11 +165,23 @@ class QmyDialogSelectTemp(QDialog):
    # 展示选择的模板
    def do_showSelectTemp(self):
       # 设置表格列名
-      self.ui.tableWidgetSelectTemp.setColumnCount(6)
-      headerText = ["型号", "尺寸", "颜色", "日期", "图片宽", "图片高"]
+      self.ui.tableWidgetSelectTemp.setColumnCount(7)
+      headerText = ["输出端口", "型号", "尺寸", "颜色", "日期", "图片宽", "图片高"]
       for i in range(len(headerText)):
          headerItem = QTableWidgetItem(headerText[i])
          self.ui.tableWidgetSelectTemp.setHorizontalHeaderItem(i, headerItem)
+
+      if self.num != 0:
+         qualities = [str(i) for i in range(1, self.num)]
+         self.comboDelegate = QmyComboBoxDelegate(self)
+         self.comboDelegate.setItems(qualities, False)  # 不可编辑
+         self.ui.tableWidgetSelectTemp.setItemDelegateForColumn(0, self.comboDelegate)
+      else:
+         qualities = []
+         self.comboDelegate = QmyComboBoxDelegate(self)
+         self.comboDelegate.setItems(qualities, False)  # 不可编辑
+         self.ui.tableWidgetSelectTemp.setItemDelegateForColumn(0, self.comboDelegate)
+
       # 刷新表格
       self.__freshTable()
 
@@ -217,6 +241,12 @@ class QmyDialogSelectTemp(QDialog):
          temp = {}
          for i in self.fldNum:
             temp[i] = curRec.value(i)
+
+         if self.num <= 1:
+            temp["port"] = ""
+         else:
+            temp["port"] = "1"
+
          # 判断是否有一样的
          flag = True
          for k in self.selectedTemp:
