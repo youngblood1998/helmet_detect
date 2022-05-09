@@ -869,6 +869,8 @@ class QmyWidget(QWidget):
             print(2)
             # 释放相关资源
             self.streamSource.contents.release(self.streamSource)
+         if self.relay_flag:
+            close_relay(self.relay_dic)
          a0.accept()
       else:
          a0.ignore()
