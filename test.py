@@ -710,9 +710,9 @@
 
 #----------------------------------------------------------------------
 
-from relay import test, test1, test2
-
-test2()
+# from relay import test, test1, test2
+#
+# test2()
 
 #------------------------------------------------------------
 # import cv2
@@ -734,3 +734,13 @@ test2()
 # cv2.imshow("resize", img1)
 # cv2.waitKey(0)
 # cv2.destroyAllWindows()
+#---------------------------------------------------------
+import cv2
+
+img = cv2.imread("./data_test/matchs_color/test.jpg")
+img = cv2.resize(img, dsize=None, fx=0.3, fy=0.3, interpolation=cv2.INTER_LINEAR)
+img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+cv2.imshow("img", img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()

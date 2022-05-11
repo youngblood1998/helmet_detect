@@ -557,11 +557,16 @@ class QmyWidget(QWidget):
          # 将相机内容缩小显示
          cvImage = cv2.resize(cvImage, dsize=None, fx=0.3, fy=0.3, interpolation=cv2.INTER_LINEAR)
 
+         # # 格式转换
+         # if len(cvImage.shape) == 3:
+         #    cvImage = cv2.cvtColor(cvImage, cv2.COLOR_BGR2RGB)
+         # else:
+         #    cvImage = cv2.cvtColor(cvImage, cv2.COLOR_GRAY2RGB)
          # 格式转换
          if len(cvImage.shape) == 3:
-            cvImage = cv2.cvtColor(cvImage, cv2.COLOR_BGR2RGB)
+            pass
          else:
-            cvImage = cv2.cvtColor(cvImage, cv2.COLOR_GRAY2RGB)
+            cvImage = cv2.cvtColor(cvImage, cv2.COLOR_GRAY2BGR)
 
          label = self.ui.label
          label.setStyleSheet('color: green')
