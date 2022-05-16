@@ -128,15 +128,16 @@ class QmyWidget(QWidget):
       self.fixed_params = {
          'exposure_time': 10000,
          'trigger_delay': 1000000,
-         'min_match_count': 10,
-         'resize_times': 0.25,
+         'min_match_count': 5,
+         'resize_times': 0.1,
          'max_matches': 500,
-         'hist1': 0.4,
-         'hist2': 0.8,
+         'hist1': 0.0,
+         'hist2': 0.4,
+         'area': 1.25,
          'trees': 5,
          'checks': 50,
          'k': 2,
-         'ratio': 0.7
+         'ratio': 0.9
       }
 
       self.select_temp = []   # 选择的模板
@@ -323,7 +324,7 @@ class QmyWidget(QWidget):
                        checks=int(self.settings.value("checks")),
                        k=int(self.settings.value("k")),
                        ratio=float(self.settings.value("ratio")),
-                       hist2=float(self.settings.value("hist2"))
+                       hist2=float(self.settings.value("hist2")), area=float(self.settings.value("area"))
                        )
       # kp2, des2 = self.do_createDes(cvtImage)
       #
@@ -882,7 +883,8 @@ class QmyWidget(QWidget):
    # 检测相机
    @pyqtSlot()
    def on_btnDetectCamera_clicked(self):
-      image_arr = ["point-2.bmp", "but-2.bmp", "pink-2.bmp", "w-m-2.bmp"]
+      # image_arr = ["point-2.bmp", "but-2.bmp", "pink-2.bmp", "w-m-2.bmp"]
+      image_arr = ["pink-2.bmp"]
       for image_name in image_arr:
          start = time.time()
          cvImage = cv2.imread("./data_test/matchs_color/" + image_name)
@@ -938,7 +940,7 @@ class QmyWidget(QWidget):
                        checks=int(self.settings.value("checks")),
                        k=int(self.settings.value("k")),
                        ratio=float(self.settings.value("ratio")),
-                       hist2=float(self.settings.value("hist2"))
+                       hist2=float(self.settings.value("hist2")), area=float(self.settings.value("area"))
                        )
          # kp2, des2 = self.do_createDes(cvtImage)
 
@@ -1194,7 +1196,7 @@ class QmyWidget(QWidget):
       # 用于传输的默认参数
       self.default_params = {}
       for param_name in self.fixed_params:
-         if param_name == 'resize_times' or param_name == 'ratio' or param_name == 'hist1' or param_name == 'hist2':
+         if param_name == 'resize_times' or param_name == 'ratio' or param_name == 'hist1' or param_name == 'hist2' or param_name == 'area':
             self.default_params[param_name] = float(self.default_settings.value(param_name))
          else:
             self.default_params[param_name] = int(self.default_settings.value(param_name))

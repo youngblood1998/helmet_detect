@@ -9,7 +9,7 @@ from detect_lib.hist_compare import hist_compare
 
 class SurfBf:
     def __init__(self, min_match_count=10, resize_times=0.3, max_matches=500, flann_index_kdtree=0,
-                 trees=5, checks=50, k=2, ratio=0.9, hist2=0.8):
+                 trees=5, checks=50, k=2, ratio=0.9, hist2=0.8, area=1.25):
         self.min_match_count = min_match_count  # 最小匹配数
         self.resize_times = resize_times    # 大小变换的倍数，越小越快越不准
         self.max_matches = max_matches  # 最大特征点数
@@ -19,6 +19,7 @@ class SurfBf:
         self.k = k  # 匹配取前k个
         self.ratio = ratio  # 距离比例
         self.hist2 = hist2  # 颜色对比度
+        self.area = area    # 面积匹配度
 
 
     def surf_bf(self, im1, kp1, des1, im2):
@@ -107,7 +108,6 @@ class SurfBf:
             # 特殊情况过滤
             if x_2-x_1<10 or y_2-y_1<10:
                 print("截取图过小")
-                print(x_2-x_1, y_2-y_1)
                 return 0, [], None
             # if min(min_x, max_x) < 0 or min(min_y, max_y) < 0 or max(min_x, max_x) > im2_w or min(min_y, max_y) > im2_h:
             #     print("有点在图外")
@@ -147,6 +147,7 @@ class SurfBf:
         im2 = cv2.resize(im2, dsize=None, fx=self.resize_times, fy=self.resize_times, interpolation=cv2.INTER_LINEAR)
         # 在模板中找最佳匹配
         for temp in temp_arr:
+            print("模板" + temp['model'])
             # 读取并调整大小
             im1 = temp["image"]
             # print(im1.shape)
@@ -175,13 +176,15 @@ class SurfBf:
             #     print(2)
             #     continue
             # 面积不合适直接跳过
-            if area2 < 0.8*area1 or area2 > 1.25*area1:
+            # if area2 < 0.8*area1 or area2 > 1.25*area1:
+            #     print("面积不匹配")
+            #     continue
+            if area2 < (1.0/self.area)*area1 or area2 > (self.area)*area1:
                 print("面积不匹配")
                 continue
 
             area_ratio = float(abs(area2-area1))/area2
             print(area_ratio)
-            print(temp['model'])
             # 选择最好的匹配
             if area_ratio < min_area_ratio:
                 min_area_ratio = area_ratio
@@ -189,6 +192,7 @@ class SurfBf:
                 draw_point = dst  # 最好匹配的框
                 best_temp = temp  # 最好模板的路径
                 angles = cal.rotationMatrix_to_eulerAngles(matrix)  # 角度
+        print("-"*20)
             # # 选择最好的匹配
             # if matches > max_matches:
             #     max_matches = matches

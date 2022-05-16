@@ -43,6 +43,7 @@ class QmyDialogSetParams(QDialog):
       self.ui.spinBoxMaxMatches.setValue(int(setting.value('max_matches')))
       self.ui.doubleSpinBoxHist1.setValue(float(setting.value('hist1')))
       self.ui.doubleSpinBoxHist2.setValue(float(setting.value('hist2')))
+      self.ui.doubleSpinBoxArea.setValue(float(setting.value('area')))
       self.ui.spinBoxTree.setValue(int(setting.value('trees')))
       self.ui.spinBoxChecks.setValue(int(setting.value('checks')))
       self.ui.spinBoxK.setValue(int(setting.value('k')))
@@ -59,6 +60,7 @@ class QmyDialogSetParams(QDialog):
          'max_matches': self.ui.spinBoxMaxMatches.value(),
          'hist1': self.ui.doubleSpinBoxHist1.value(),
          'hist2': self.ui.doubleSpinBoxHist2.value(),
+         'area': self.ui.doubleSpinBoxArea.value(),
          'trees': self.ui.spinBoxTree.value(),
          'checks': self.ui.spinBoxChecks.value(),
          'k': self.ui.spinBoxK.value(),
@@ -81,6 +83,7 @@ class QmyDialogSetParams(QDialog):
       self.ui.spinBoxMaxMatches.setValue(self.default_params['max_matches'])
       self.ui.doubleSpinBoxHist1.setValue(self.default_params['hist1'])
       self.ui.doubleSpinBoxHist2.setValue(self.default_params['hist2'])
+      self.ui.doubleSpinBoxArea.setValue(self.default_params['area'])
       self.ui.spinBoxTree.setValue(self.default_params['trees'])
       self.ui.spinBoxChecks.setValue(self.default_params['checks'])
       self.ui.spinBoxK.setValue(self.default_params['k'])
@@ -98,6 +101,7 @@ class QmyDialogSetParams(QDialog):
          'max_matches': self.ui.spinBoxMaxMatches.value(),
          'hist1': self.ui.doubleSpinBoxHist1.value(),
          'hist2': self.ui.doubleSpinBoxHist2.value(),
+         'area': self.ui.doubleSpinBoxArea.value(),
          'trees': self.ui.spinBoxTree.value(),
          'checks': self.ui.spinBoxChecks.value(),
          'k': self.ui.spinBoxK.value(),

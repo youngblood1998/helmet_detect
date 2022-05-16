@@ -124,17 +124,18 @@ class QmyWidget(QWidget):
 
       # 默认参数
       self.fixed_params = {
-         'exposure_time': 10000,
+         'exposure_time': 19000,
          'trigger_delay': 1000000,
-         'min_match_count': 10,
-         'resize_times': 0.25,
+         'min_match_count': 5,
+         'resize_times': 0.1,
          'max_matches': 500,
-         'hist1': 0.4,
-         'hist2': 0.8,
+         'hist1': 0.0,
+         'hist2': 0.4,
+         'area': 1.25,
          'trees': 5,
          'checks': 50,
          'k': 2,
-         'ratio': 0.7
+         'ratio': 0.9
       }
 
       self.select_temp = []   # 选择的模板
@@ -321,7 +322,7 @@ class QmyWidget(QWidget):
                        checks=int(self.settings.value("checks")),
                        k=int(self.settings.value("k")),
                        ratio=float(self.settings.value("ratio")),
-                       hist2=float(self.settings.value("hist2"))
+                       hist2=float(self.settings.value("hist2")), area=float(self.settings.value("area"))
                        )
       # kp2, des2 = self.do_createDes(cvtImage)
       #
@@ -346,7 +347,7 @@ class QmyWidget(QWidget):
 
       # 匹配结果不为空，则显示输入输出图像
       if not result is None:
-         print(result["model"])
+         print("匹配结果:" + result["model"])
          # 显示画出匹配框的图像
          try:
             qt_image = QtGui.QImage(imageDraw.data,
@@ -868,10 +869,10 @@ class QmyWidget(QWidget):
       if ret == QMessageBox.Yes:
          if self.detect_flag:
             self.do_stopDetect()
-            print(1)
+            print("停止检测")
          if self.camera_flag:
             closeCamera(self.camera)
-            print(2)
+            print("关闭相机")
             # 释放相关资源
             self.streamSource.contents.release(self.streamSource)
          if self.relay_flag:
@@ -1069,7 +1070,7 @@ class QmyWidget(QWidget):
       # 用于传输的默认参数
       self.default_params = {}
       for param_name in self.fixed_params:
-         if param_name == 'resize_times' or param_name == 'ratio' or param_name == 'hist1' or param_name == 'hist2':
+         if param_name == 'resize_times' or param_name == 'ratio' or param_name == 'hist1' or param_name == 'hist2' or param_name == 'area':
             self.default_params[param_name] = float(self.default_settings.value(param_name))
          else:
             self.default_params[param_name] = int(self.default_settings.value(param_name))
@@ -1087,7 +1088,7 @@ class QmyWidget(QWidget):
             self.settings.setValue(param_name, new_params[param_name])
          # 判断resize_times是否改变确定是否更改关键点和描述子
          if round(float(old_resize), 1) != round(new_resize, 1) and len(self.temp_arr) != 0:
-            print(1)
+            print("重新生成描述子")
             for t in self.temp_arr:
                kp, des = self.do_createDes(t["image"])
                t["kp"] = kp
@@ -1109,8 +1110,7 @@ class QmyWidget(QWidget):
          self.temp_arr = self.do_selectTempArr()
          print("选择了"+str(len(self.temp_arr))+"模板")
          for t in self.select_temp:
-            print(t["port"])
-            print(t["model"])
+            print(t["model"]+"的输出端口号："+str(t["port"]))
       # print(len(self.temp_arr))
       # for i in self.temp_arr:
       #    print(i["des"])
