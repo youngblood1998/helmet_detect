@@ -96,6 +96,28 @@ class Relaythread(QThread):
          return
 
 
+# 继电器触发的线程
+class RelayExport_thread(QThread):
+   def __init__(self, relay_dic):
+      super(RelayExport_thread, self).__init__()
+      self.relay_dic = relay_dic
+
+   def __del__(self):
+      try:
+         self.wait()
+      except:
+         pass
+
+   def run(self):
+      try:
+         self.wait()
+      except:
+         return
+
+   def export(self, port, t):
+      export_relay(self.relay_dic, port, t)
+
+
 class QmyWidget(QWidget):
 
    def __init__(self, parent=None):
@@ -126,6 +148,7 @@ class QmyWidget(QWidget):
       self.fixed_params = {
          'exposure_time': 19000,
          'trigger_delay': 1000000,
+         'delay_time': 0.5,
          'min_match_count': 5,
          'resize_times': 0.1,
          'max_matches': 500,
@@ -402,7 +425,8 @@ class QmyWidget(QWidget):
             self.mythread.send(string)
          # 继电器输出
          if self.relay_flag:
-            export_relay(self.relay_dic, result["port"])
+            self.relay_export_thread.export(result["port"], float(self.settings.value("delay_time")))
+            # export_relay(self.relay_dic, result["port"])
       else:
          label = self.ui.label_2
          label.setStyleSheet('color: red')
@@ -415,7 +439,8 @@ class QmyWidget(QWidget):
             self.mythread.send(string)
          # 继电器输出
          if self.relay_flag:
-            export_relay(self.relay_dic, self.num)
+            self.relay_export_thread.export(self.num, float(self.settings.value("delay_time")))
+            # export_relay(self.relay_dic, self.num)
       gc.collect()
 
 
@@ -1029,6 +1054,8 @@ class QmyWidget(QWidget):
       self.ui.btnMakeTemp.setEnabled(False)
       self.ui.btnTestCamera.setEnabled(False)
       # 检测并设置标志
+      if self.relay_flag:
+         self.relay_export_thread = RelayExport_thread(self.relay_dic)
       self.do_detect()
       self.detect_flag = True
 
@@ -1070,7 +1097,7 @@ class QmyWidget(QWidget):
       # 用于传输的默认参数
       self.default_params = {}
       for param_name in self.fixed_params:
-         if param_name == 'resize_times' or param_name == 'ratio' or param_name == 'hist1' or param_name == 'hist2' or param_name == 'area':
+         if param_name == 'resize_times' or param_name == 'ratio' or param_name == 'hist1' or param_name == 'hist2' or param_name == 'area' or param_name == 'delay_time':
             self.default_params[param_name] = float(self.default_settings.value(param_name))
          else:
             self.default_params[param_name] = int(self.default_settings.value(param_name))
@@ -1081,6 +1108,7 @@ class QmyWidget(QWidget):
       # 根据选择决定是否更改参数
       if ret:
          new_params = dialogSetParams.get_new_params()
+         print(new_params)
          self.settings = QSettings("./config.ini", QSettings.IniFormat)
          old_resize = self.settings.value("resize_times")
          new_resize = new_params["resize_times"]

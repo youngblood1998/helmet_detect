@@ -48,7 +48,7 @@ def test_delay(relay_dic):
          objdll.USBRELAY_SetRelay(ctypes.c_uint64(int(key)), i, 0)
 
 
-def export_relay(relay_dic, port):
+def export_relay(relay_dic, port, t):
    objdll = ctypes.windll.LoadLibrary('./usbrelay.dll')
    objdll.USBRELAY_Open.restype = ctypes.c_uint64
 
@@ -60,3 +60,9 @@ def export_relay(relay_dic, port):
          if num == port:
             objdll.USBRELAY_SetRelay(ctypes.c_uint64(int(key)), i, 1)
          num += 1
+
+   time.sleep(t)
+
+   for key, value in relay_dic.items():
+      for i in range(1, value):
+         objdll.USBRELAY_SetRelay(ctypes.c_uint64(int(key)), i, 0)

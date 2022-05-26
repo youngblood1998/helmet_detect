@@ -735,12 +735,52 @@
 # cv2.waitKey(0)
 # cv2.destroyAllWindows()
 #---------------------------------------------------------
-import cv2
+# import cv2
+#
+# img = cv2.imread("./data_test/matchs_color/test.jpg")
+# img = cv2.resize(img, dsize=None, fx=0.3, fy=0.3, interpolation=cv2.INTER_LINEAR)
+# img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+#
+# cv2.imshow("img", img)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
+#----------------------------------------------------------
+# import time
+#
+# time.sleep(0.5)
+#----------------------------------------------------
+from PyQt5.QtCore import QThread
+import time
 
-img = cv2.imread("./data_test/matchs_color/test.jpg")
-img = cv2.resize(img, dsize=None, fx=0.3, fy=0.3, interpolation=cv2.INTER_LINEAR)
-img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+def test():
+   print(1)
+   time.sleep(2)
+   print(2)
 
-cv2.imshow("img", img)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+class Relaythread(QThread):
+   #  通过类成员对象定义信号对象
+
+   def __init__(self):
+      super(Relaythread, self).__init__()
+
+   def __del__(self):
+      try:
+         self.wait()
+      except:
+         pass
+
+   def run(self):
+      try:
+         self.wait()
+      except:
+         return
+
+   def emit(self):
+      test()
+
+
+thread = Relaythread()
+thread.start()
+thread.emit()
+time.sleep(1)
+thread.emit()
