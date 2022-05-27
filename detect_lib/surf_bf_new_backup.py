@@ -154,9 +154,9 @@ class SurfBf:
             im1 = cv2.resize(im1, dsize=None, fx=self.resize_times, fy=self.resize_times,
                              interpolation=cv2.INTER_LINEAR)
             # 模板图片的宽高和面积
-            # im1_height = np.shape(im1)[0]
+            im1_height = np.shape(im1)[0]
             im1_width = np.shape(im1)[1]
-            # area1 = im1_width * im1_height
+            area1 = im1_width * im1_height
             # 匹配点个数、框的四个点、变换矩阵
             matches, dst, matrix = self.surf_bf(im1, temp["kp"], temp["des"], im2)
             # print(dst[2][0][0])
@@ -164,19 +164,9 @@ class SurfBf:
             if len(dst) == 0:
                 # print(1)
                 continue
-            # 计算两边中点连线长度
-            point0 = (int((dst[0][0][0] + dst[1][0][0])/2), int((dst[0][0][1] + dst[1][0][1])/2))
-            point1 = (int((dst[2][0][0] + dst[3][0][0])/2), int((dst[2][0][1] + dst[3][0][1])/2))
+            # 计算匹配框的面积
             cal = CalArea()
-            length2 = cal.get_distance(point0, point1)
-
-            if length2 < (1.0/self.area)*im1_width or length2 > (self.area)*im1_width:
-                print("长度不匹配")
-                continue
-
-            # # 计算匹配框的面积
-            # cal = CalArea()
-            # area2 = cal.get_point_area([dst[0][0], dst[1][0], dst[2][0], dst[3][0]])
+            area2 = cal.get_point_area([dst[0][0], dst[1][0], dst[2][0], dst[3][0]])
             # print(dst, area2)
             # im2_width = abs(dst[0][0][0]-dst[2][0][0])
             # im2_height = abs(dst[0][0][1]-dst[2][0][1])
@@ -189,13 +179,12 @@ class SurfBf:
             # if area2 < 0.8*area1 or area2 > 1.25*area1:
             #     print("面积不匹配")
             #     continue
-            # if area2 < (1.0/self.area)*area1 or area2 > (self.area)*area1:
-            #     print("面积不匹配")
-            #     continue
+            if area2 < (1.0/self.area)*area1 or area2 > (self.area)*area1:
+                print("面积不匹配")
+                continue
 
-            # area_ratio = float(abs(area2-area1))/area2
-            area_ratio = float(abs(length2-im1_width))/length2
-            print(length2, im1_width, area_ratio)
+            area_ratio = float(abs(area2-area1))/area2
+            print(area_ratio)
             # 选择最好的匹配
             if area_ratio < min_area_ratio:
                 min_area_ratio = area_ratio
@@ -216,7 +205,6 @@ class SurfBf:
             return None, 0, [], 0, 0, 0
         # 把匹配的框画进去，并表示出来
         im2 = cv2.polylines(im2, [np.int32(draw_point)], True, (255, 0, 0), 3, cv2.LINE_AA)
-        im2 = cv2.line(im2, point0, point1, (0, 0, 255), 3)
         # cv2.imshow("template", best_match)
         # cv2.imshow("result", im2)
         # cv2.waitKey(0)

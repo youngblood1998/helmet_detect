@@ -883,8 +883,8 @@ class QmyWidget(QWidget):
    # 检测相机
    @pyqtSlot()
    def on_btnDetectCamera_clicked(self):
-      # image_arr = ["point-2.bmp", "but-2.bmp", "pink-2.bmp", "w-m-2.bmp"]
-      image_arr = ["pink-2.bmp"]
+      image_arr = ["point-2.bmp", "but-2.bmp", "pink-2.bmp", "w-m-2.bmp"]
+      # image_arr = ["pink-2.bmp"]
       for image_name in image_arr:
          start = time.time()
          cvImage = cv2.imread("./data_test/matchs_color/" + image_name)

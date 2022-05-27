@@ -749,38 +749,38 @@
 #
 # time.sleep(0.5)
 #----------------------------------------------------
-from PyQt5.QtCore import QThread
-import time
-
-def test():
-   print(1)
-   time.sleep(2)
-   print(2)
-
-class Relaythread(QThread):
-   #  通过类成员对象定义信号对象
-
-   def __init__(self):
-      super(Relaythread, self).__init__()
-
-   def __del__(self):
-      try:
-         self.wait()
-      except:
-         pass
-
-   def run(self):
-      try:
-         self.wait()
-      except:
-         return
-
-   def emit(self):
-      test()
-
-
-thread = Relaythread()
-thread.start()
-thread.emit()
-time.sleep(1)
-thread.emit()
+# from PyQt5.QtCore import QThread
+# import time
+#
+# def test():
+#    print(1)
+#    time.sleep(2)
+#    print(2)
+#
+# class Relaythread(QThread):
+#    #  通过类成员对象定义信号对象
+#
+#    def __init__(self):
+#       super(Relaythread, self).__init__()
+#
+#    def __del__(self):
+#       try:
+#          self.wait()
+#       except:
+#          pass
+#
+#    def run(self):
+#       try:
+#          self.wait()
+#       except:
+#          return
+#
+#    def emit(self):
+#       test()
+#
+#
+# thread = Relaythread()
+# thread.start()
+# thread.emit()
+# time.sleep(1)
+# thread.emit()
