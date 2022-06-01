@@ -127,7 +127,10 @@ class QmyDialogSelectTemp(QDialog):
          self.ui.tableWidgetSelectTemp.insertRow(row)
 
          # 端口
-         item = QTableWidgetItem(str(t["port"]))
+         if "port" in t:
+            item = QTableWidgetItem(str(t["port"]))
+         else:
+            item = QTableWidgetItem("")
          self.ui.tableWidgetSelectTemp.setItem(row, 0, item)
 
          for index in t:
@@ -171,16 +174,16 @@ class QmyDialogSelectTemp(QDialog):
          headerItem = QTableWidgetItem(headerText[i])
          self.ui.tableWidgetSelectTemp.setHorizontalHeaderItem(i, headerItem)
 
-      if self.num != 0:
-         qualities = [str(i) for i in range(1, self.num)]
-         self.comboDelegate = QmyComboBoxDelegate(self)
-         self.comboDelegate.setItems(qualities, False)  # 不可编辑
-         self.ui.tableWidgetSelectTemp.setItemDelegateForColumn(0, self.comboDelegate)
-      else:
-         qualities = []
-         self.comboDelegate = QmyComboBoxDelegate(self)
-         self.comboDelegate.setItems(qualities, False)  # 不可编辑
-         self.ui.tableWidgetSelectTemp.setItemDelegateForColumn(0, self.comboDelegate)
+      # if self.num != 0:
+      #    qualities = [str(i) for i in range(1, self.num)]
+      #    self.comboDelegate = QmyComboBoxDelegate(self)
+      #    self.comboDelegate.setItems(qualities, False)  # 不可编辑
+      #    self.ui.tableWidgetSelectTemp.setItemDelegateForColumn(0, self.comboDelegate)
+      # else:
+      #    qualities = []
+      #    self.comboDelegate = QmyComboBoxDelegate(self)
+      #    self.comboDelegate.setItems(qualities, False)  # 不可编辑
+      #    self.ui.tableWidgetSelectTemp.setItemDelegateForColumn(0, self.comboDelegate)
 
       # 刷新表格
       self.__freshTable()
@@ -242,10 +245,10 @@ class QmyDialogSelectTemp(QDialog):
          for i in self.fldNum:
             temp[i] = curRec.value(i)
 
-         if self.num <= 1:
-            temp["port"] = ""
-         else:
-            temp["port"] = "1"
+         # if self.num <= 1:
+         #    temp["port"] = ""
+         # else:
+         #    temp["port"] = "1"
 
          # 判断是否有一样的
          flag = True

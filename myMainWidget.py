@@ -424,9 +424,18 @@ class QmyWidget(QWidget):
             string = result["model"]+";"+result["size"]+";"+result["color"]+";"+str(dir)+";"+str(x)+";"+str(y)+";"+str(angle)
             self.mythread.send(string)
          # 继电器输出
-         if self.relay_flag:
-            self.relay_export_thread.export(result["port"], float(self.settings.value("delay_time")))
+         # if self.relay_flag:
+         #    self.relay_export_thread.export(result["port"], float(self.settings.value("delay_time")))
             # export_relay(self.relay_dic, result["port"])
+         if self.relay_flag:
+            if result["port_index"] < len(result["port"]):
+               while result["port"][result["port_index"]] > self.num and result["port_index"] < len(result["port"]):
+                  result["port_index"] = result["port_index"]+1
+               if result["port_index"] < len(result["port"]):
+                  self.relay_export_thread.export(result["port"][result["port_index"]], float(self.settings.value("delay_time")))
+                  result["port_index"] = result["port_index"]+1
+               if result["port_index"] >= len(result["port"]):
+                  result["port_index"] = 0
       else:
          label = self.ui.label_2
          label.setStyleSheet('color: red')
@@ -437,9 +446,9 @@ class QmyWidget(QWidget):
          if self.mythread:
             string = ";" + ";" + ";" + str(-1) + ";" + str(0) + ";" + str(0) + ";" + str(0)
             self.mythread.send(string)
-         # 继电器输出
-         if self.relay_flag:
-            self.relay_export_thread.export(self.num, float(self.settings.value("delay_time")))
+         # # 继电器输出
+         # if self.relay_flag:
+         #    self.relay_export_thread.export(self.num, float(self.settings.value("delay_time")))
             # export_relay(self.relay_dic, self.num)
       gc.collect()
 
@@ -855,9 +864,20 @@ class QmyWidget(QWidget):
       for t in self.select_temp:
          temp = {}
          if t["port"] == "":
-            temp["port"] = -1
+            temp["port"] = []
          else:
-            temp["port"] = int(t["port"])
+            try:
+               arr = t["port"].split(',')
+               temp["port"] = []
+               for a in arr:
+                  temp["port"].extend(a.split("，"))
+               for i in range(len(temp["port"])):
+                  # print(temp["port"][i])
+                  temp["port"][i] = int(temp["port"][i])
+            except:
+               return None
+         # print(temp["port"])
+         temp["port_index"] = 0
          temp["model"] = t["model"]
          temp["size"] = t["size"]
          temp["color"] = t["color"]
@@ -1127,18 +1147,27 @@ class QmyWidget(QWidget):
    @pyqtSlot()
    def on_btnSelectTemp_clicked(self):
       # 跳出选择模板窗口
-      dialogSelectTemp = QmyDialogSelectTemp()
-      dialogSelectTemp.set_temp(self.select_temp, self.num)
-      dialogSelectTemp.do_showSelectTemp()
-      ret = dialogSelectTemp.exec()
-      # 根据选择的模板生成数组
-      if ret:
-         self.select_temp = dialogSelectTemp.get_temp()
-         # print(len(self.select_temp))
-         self.temp_arr = self.do_selectTempArr()
-         print("选择了"+str(len(self.temp_arr))+"模板")
-         for t in self.select_temp:
-            print(t["model"]+"的输出端口号："+str(t["port"]))
+      select_flag = False
+      while not select_flag:
+         dialogSelectTemp = QmyDialogSelectTemp()
+         dialogSelectTemp.set_temp(self.select_temp, self.num)
+         dialogSelectTemp.do_showSelectTemp()
+         ret = dialogSelectTemp.exec()
+         # 根据选择的模板生成数组
+         if ret:
+            self.select_temp = dialogSelectTemp.get_temp()
+            # print(len(self.select_temp))
+            temp_arr = self.do_selectTempArr()
+            if not temp_arr is None:
+               self.temp_arr = temp_arr
+               print("选择了"+str(len(self.temp_arr))+"模板")
+               for t in self.select_temp:
+                  print(t["model"]+"的输出端口号："+str(t["port"]))
+               select_flag = True
+            else:
+               QMessageBox.warning(self, "提示", "请在输出端口按照 1,2,3 格式输入", QMessageBox.Yes)
+         else:
+            select_flag = True
       # print(len(self.temp_arr))
       # for i in self.temp_arr:
       #    print(i["des"])

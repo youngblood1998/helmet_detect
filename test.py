@@ -784,3 +784,12 @@
 # thread.emit()
 # time.sleep(1)
 # thread.emit()
+#-------------------------------
+s = "1"
+arr = s.split(',')
+arr1 = []
+for a in arr:
+   arr1.extend(a.split("，"))
+for i in range(len(arr1)):
+   arr1[i] = int(arr1[i])
+print(arr1)
