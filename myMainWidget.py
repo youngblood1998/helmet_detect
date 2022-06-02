@@ -23,6 +23,7 @@ from camera_lib import enumCameras, openCamera, closeCamera, setSoftTriggerConf,
    setLineTriggerConf
 # from detect_lib.sift_flann_new import SiftFlann
 from detect_lib.surf_bf_new import SurfBf
+from detect_lib.draw_line import drawline, drawgrid
 from relay_lib import init_relay, close_relay, test_delay, export_relay
 from detect_lib.hist_compare import hist_compare
 from myDialogMakeTemp import QmyDialogMakeTemp
@@ -90,6 +91,7 @@ class Relaythread(QThread):
 
    def run(self):
       try:
+         # 测试继电器
          test_delay(self.relay_dic)
          self.signal_1.emit(1)
       except:
@@ -115,6 +117,7 @@ class RelayExport_thread(QThread):
          return
 
    def export(self, port, t):
+      # 继电器输出
       export_relay(self.relay_dic, port, t)
 
 
@@ -140,7 +143,7 @@ class QmyWidget(QWidget):
       self.ui.btnTCPClose.setEnabled(False)
       self.ui.btnCloseRelay.setEnabled(False)
       self.ui.btnTestRelay.setEnabled(False)
-      default_ip = gethostbyname(gethostname())
+      default_ip = gethostbyname(gethostname())    # 本机ip地址
       self.ui.lineEditAdr.setText(default_ip)
       self.ui.lineEditPort.setText("8080")
 
@@ -164,7 +167,7 @@ class QmyWidget(QWidget):
       self.select_temp = []   # 选择的模板
       self.temp_arr = []   # 选择的模板(包含关键点和描述子)
       self.mythread = None
-      self.num = 0
+      self.num = 0      # 继电器端口数
 
       # 有无默认配置文件，没有的话创建并设置默认参数
       if not os.path.exists('./defaultConfig.ini'):
@@ -188,20 +191,25 @@ class QmyWidget(QWidget):
 ##  ==============自定义功能函数========================
    # 输出csv文件
    def write_csv(self, model, size, color, ok, x, y, angle):
+
+      # 先查看有无文件夹，没有就创建
       if not os.path.exists("../records"):
          os.mkdir("../records")
 
+      # 根据日期创建csv文件并写入表头
       if not os.path.isfile("../records/" + str(datetime.date.today()) + ".csv"):
          with open("../records/" + str(datetime.date.today()) + ".csv", 'w', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(["", "型号", "尺寸", "颜色", "时间", "OK", "NG", "总数", "X位置", "Y位置", "角度"])
 
+      # 打开csv文件获取相关信息
       with open("../records/" + str(datetime.date.today()) + ".csv", 'r', newline='') as file:
          reader = csv.reader(file)
          reader_list = list(reader)
          length = len(reader_list)
          last_row = reader_list[-1]
 
+      # 写入csv文件
       with open("../records/" + str(datetime.date.today()) + ".csv", "a", newline='') as file:
          writer = csv.writer(file)
          if length == 1:
@@ -249,7 +257,7 @@ class QmyWidget(QWidget):
       return 0
 
 
-   # 回调函数，用于测试相机
+   # 回调函数，用于检测
    def test_callback(self, frame, userInfo):
       nRet = frame.contents.valid(frame)
       if (nRet != 0):
@@ -370,7 +378,8 @@ class QmyWidget(QWidget):
 
       # 匹配结果不为空，则显示输入输出图像
       if not result is None:
-         print("匹配结果:" + result["model"])
+         print("匹配结果:" + result["model"] + result["size"])
+         print("\n")
          # 显示画出匹配框的图像
          try:
             qt_image = QtGui.QImage(imageDraw.data,
@@ -609,6 +618,9 @@ class QmyWidget(QWidget):
 
          self.ui.btnTestCamera.setEnabled(False)
 
+         # 画网格
+         drawgrid(cvImage, 4)
+
          cv2.imshow("Test Camera", cvImage)
          gc.collect()
 
@@ -745,6 +757,8 @@ class QmyWidget(QWidget):
       rImage = cv2.resize(image, dsize=None, fx=dsize, fy=dsize, interpolation=cv2.INTER_LINEAR)
       # selectROI和imshow的默认类型是BGR
       rImage = cv2.cvtColor(rImage, cv2.COLOR_RGB2BGR)
+      # 画网格
+      drawgrid(rImage, 10)
       min_x, min_y, w, h = cv2.selectROI('select_roi', rImage)
       if len(rImage.shape) == 3:
          nImage = image[int(min_y/dsize):int((min_y+h)/dsize), int(min_x/dsize):int((min_x+w)/dsize), :]
@@ -863,20 +877,24 @@ class QmyWidget(QWidget):
       # 模板字典
       for t in self.select_temp:
          temp = {}
+         # 继电器端口数组
          if t["port"] == "":
             temp["port"] = []
          else:
             try:
+               # 根据‘，’和‘,’分割成数组
                arr = t["port"].split(',')
                temp["port"] = []
                for a in arr:
                   temp["port"].extend(a.split("，"))
+               # 转换为int类型
                for i in range(len(temp["port"])):
                   # print(temp["port"][i])
                   temp["port"][i] = int(temp["port"][i])
             except:
                return None
          # print(temp["port"])
+         # 用于继电器端口循环输出的索引
          temp["port_index"] = 0
          temp["model"] = t["model"]
          temp["size"] = t["size"]
@@ -1158,6 +1176,7 @@ class QmyWidget(QWidget):
             self.select_temp = dialogSelectTemp.get_temp()
             # print(len(self.select_temp))
             temp_arr = self.do_selectTempArr()
+            # 判断端口参数设置是否出错，出错重新设置
             if not temp_arr is None:
                self.temp_arr = temp_arr
                print("选择了"+str(len(self.temp_arr))+"模板")
@@ -1268,13 +1287,16 @@ class QmyWidget(QWidget):
    # 打开继电器
    @pyqtSlot()
    def on_btnOpenRelay_clicked(self):
+      # 继电器初始化，拿到继电器字典
       self.relay_dic = init_relay()
       print(self.relay_dic)
       if len(self.relay_dic) != 0:
+         # 计算端口数
          num = 0
          for key, value in self.relay_dic.items():
             num += value-1
          self.num = num
+
          label = self.ui.labRelay
          label.setStyleSheet('color: green')
          label.setText(str(len(self.relay_dic))+"个继电器,"+str(num)+"个端口")
@@ -1283,7 +1305,7 @@ class QmyWidget(QWidget):
          self.ui.btnCloseRelay.setEnabled(True)
          self.ui.btnTestRelay.setEnabled(True)
 
-         self.relay_flag = True
+         self.relay_flag = True  # 继电器开关标志
       else:
          label = self.ui.labRelay
          label.setStyleSheet('color: red')

@@ -883,8 +883,8 @@ class QmyWidget(QWidget):
    # 检测相机
    @pyqtSlot()
    def on_btnDetectCamera_clicked(self):
-      image_arr = ["point-2.bmp", "but-2.bmp", "pink-2.bmp", "w-m-2.bmp"]
-      # image_arr = ["pink-2.bmp"]
+      image_arr = ["b-l-2.bmp", "b-m-2.bmp", "b-s-2.bmp", "w-m-2.bmp"]
+      # image_arr = ["b-l-2.bmp"]
       for image_name in image_arr:
          start = time.time()
          cvImage = cv2.imread("./data_test/matchs_color/" + image_name)
@@ -965,7 +965,8 @@ class QmyWidget(QWidget):
 
          # 匹配结果不为空，则显示输入输出图像
          if not result is None:
-            print(result["model"])
+            print("匹配结果:" + result["model"] + result["size"])
+            print("\n")
             # 显示画出匹配框的图像
             try:
                qt_image = QtGui.QImage(imageDraw.data,

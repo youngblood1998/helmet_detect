@@ -785,11 +785,40 @@
 # time.sleep(1)
 # thread.emit()
 #-------------------------------
-s = "1"
-arr = s.split(',')
-arr1 = []
-for a in arr:
-   arr1.extend(a.split("，"))
-for i in range(len(arr1)):
-   arr1[i] = int(arr1[i])
-print(arr1)
+# s = "1"
+# arr = s.split(',')
+# arr1 = []
+# for a in arr:
+#    arr1.extend(a.split("，"))
+# for i in range(len(arr1)):
+#    arr1[i] = int(arr1[i])
+# print(arr1)
+# import numpy as np
+# import cv2
+#
+# a = np.array([[1,2,3,4,5,6,7],[3,4,5,6,7,8,9],[1,2,3,4,5,6,7],[3,4,5,6,7,8,9],[1,2,3,4,5,6,7],[3,4,5,6,7,8,9],[1,2,3,4,5,6,7],[3,4,5,6,7,8,9]])
+# b = a
+# b = cv2.resize(b, dsize=None, fx=2, fy=2, interpolation=cv2.INTER_LINEAR)
+# print(a)
+# print(b)
+# print("\n")
+# print(1)
+#-------------------------------
+import cv2
+from detect_lib.draw_line import drawline, drawgrid
+
+img = cv2.imread("data_test/matchs_color/pink-1.bmp")
+img = cv2.resize(img, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+# cv2.line(img, (0,0), (img.shape[1], img.shape[0]), (0, 0, 255), 3, lineType=cv2.LINE_AA)
+num = 10
+drawgrid(img, num)
+cv2.selectROI('select_roi', img)
+# for i in range(1, num):
+#    drawline(img, (int(img.shape[1]*i/num),0), (int(img.shape[1]*i/num), img.shape[0]), (0, 255, 0), 1, "")
+#    drawline(img, (0,int(img.shape[0]*i/num)), (img.shape[1], int(img.shape[0]*i/num)), (0, 255, 0), 1, "")
+# drawline(img, (int(img.shape[1] / 4), 0), (int(img.shape[1] / 4), img.shape[0]), (0, 255, 0), 1, "")
+# drawline(img, (int(img.shape[1] * 3 / 4), 0), (int(img.shape[1] * 3 / 4), img.shape[0]), (0, 255, 0), 1, "")
+# drawline(img, (img.shape[1],0), (0, img.shape[0]), (0, 255, 0), 1, "")
+cv2.imshow("img", img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
