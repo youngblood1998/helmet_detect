@@ -5,8 +5,8 @@ import datetime
 conn = sqlite3.connect('helmetDB.db3')
 cursor = conn.cursor()
 
-img_arr = ["b-l","b-m","b-s", "but", "core", "pink", "point", "w-half", "w-l", "w-m"]
-pwd = "./data_test/template_color/"
+img_arr = ["test"]
+pwd = "./data_test/test/"
 
 # 执行插入
 for img in img_arr:

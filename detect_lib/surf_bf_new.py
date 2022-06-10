@@ -107,7 +107,7 @@ class SurfBf:
             y_2 = max(min_y, max_y) if max(min_y, max_y) <= im2_h else im2_h
             # 特殊情况过滤
             if x_2-x_1<10 or y_2-y_1<10:
-                print("截取图过小")
+                print("截取图过小", x_2-x_1, y_2-y_1)
                 return 0, [], None
             # if min(min_x, max_x) < 0 or min(min_y, max_y) < 0 or max(min_x, max_x) > im2_w or min(min_y, max_y) > im2_h:
             #     print("有点在图外")

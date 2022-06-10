@@ -804,21 +804,55 @@
 # print("\n")
 # print(1)
 #-------------------------------
-import cv2
-from detect_lib.draw_line import drawline, drawgrid
+# import cv2
+# from detect_lib.draw_line import drawline, drawgrid
+#
+# img = cv2.imread("data_test/matchs_color/pink-1.bmp")
+# img = cv2.resize(img, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+# # cv2.line(img, (0,0), (img.shape[1], img.shape[0]), (0, 0, 255), 3, lineType=cv2.LINE_AA)
+# num = 10
+# drawgrid(img, num)
+# cv2.selectROI('select_roi', img)
+# # for i in range(1, num):
+# #    drawline(img, (int(img.shape[1]*i/num),0), (int(img.shape[1]*i/num), img.shape[0]), (0, 255, 0), 1, "")
+# #    drawline(img, (0,int(img.shape[0]*i/num)), (img.shape[1], int(img.shape[0]*i/num)), (0, 255, 0), 1, "")
+# # drawline(img, (int(img.shape[1] / 4), 0), (int(img.shape[1] / 4), img.shape[0]), (0, 255, 0), 1, "")
+# # drawline(img, (int(img.shape[1] * 3 / 4), 0), (int(img.shape[1] * 3 / 4), img.shape[0]), (0, 255, 0), 1, "")
+# # drawline(img, (img.shape[1],0), (0, img.shape[0]), (0, 255, 0), 1, "")
+# cv2.imshow("img", img)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
 
-img = cv2.imread("data_test/matchs_color/pink-1.bmp")
-img = cv2.resize(img, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
-# cv2.line(img, (0,0), (img.shape[1], img.shape[0]), (0, 0, 255), 3, lineType=cv2.LINE_AA)
-num = 10
-drawgrid(img, num)
-cv2.selectROI('select_roi', img)
-# for i in range(1, num):
-#    drawline(img, (int(img.shape[1]*i/num),0), (int(img.shape[1]*i/num), img.shape[0]), (0, 255, 0), 1, "")
-#    drawline(img, (0,int(img.shape[0]*i/num)), (img.shape[1], int(img.shape[0]*i/num)), (0, 255, 0), 1, "")
-# drawline(img, (int(img.shape[1] / 4), 0), (int(img.shape[1] / 4), img.shape[0]), (0, 255, 0), 1, "")
-# drawline(img, (int(img.shape[1] * 3 / 4), 0), (int(img.shape[1] * 3 / 4), img.shape[0]), (0, 255, 0), 1, "")
-# drawline(img, (img.shape[1],0), (0, img.shape[0]), (0, 255, 0), 1, "")
-cv2.imshow("img", img)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+# p1 = (10, 20)
+# p2 = (20, 10)
+#
+# length = ((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)**0.5
+# print(length)
+#----------------------------------------------------
+# import cv2 as cv
+#
+# img = cv.imread("./data_test/test/right_3.bmp")
+# img = cv.resize(img, dsize=None, fx=0.3, fy=0.3, interpolation=cv.INTER_LINEAR)
+# min_x1, min_y1, w1, h1 = cv.selectROI("roi1", img)
+# min_x2, min_y2, w2, h2 = cv.selectROI("roi2", img)
+#
+# length = ((min_x1-min_x2)**2 + (min_y1-min_y2)**2)**0.5
+# print(length)
+
+#-------------------------------------------------
+import cv2 as cv
+import time
+
+img = cv.imread("./data_test/test/right_3.bmp")
+# img = cv.resize(img, dsize=None, fx=0.3, fy=0.3, interpolation=cv.INTER_LINEAR)
+start = time.time()
+img_flip = cv.flip(img, 0)
+print(time.time()-start)
+# cv.imshow("img", img)
+# cv.imshow("img_flip", img_flip)
+# cv.waitKey(0)
+# cv.destroyAllWindows()
+#-------------------------------------
+# import numpy
+#
+# print(numpy.pi/2)

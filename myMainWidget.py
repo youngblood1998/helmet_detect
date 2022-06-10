@@ -376,6 +376,13 @@ class QmyWidget(QWidget):
       # result, dir, imageDraw, angle, x, y = surf.match(detect_temp_arr, cvtImage)
       result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage)
 
+      # 上下反转再检测
+      if (angle > 0.2 and angle < numpy.pi/2-0.2) or (angle > -numpy.pi+0.2 and angle < -numpy.pi/2-0.2):
+         cvtImage_flip = cv2.flip(cvtImage, 0)
+         result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage_flip)
+         imageDraw = cv2.flip(imageDraw, 0)
+         angle = -angle
+
       # 匹配结果不为空，则显示输入输出图像
       if not result is None:
          print("匹配结果:" + result["model"] + result["size"])
@@ -424,7 +431,7 @@ class QmyWidget(QWidget):
          label = self.ui.label_2
          label.setStyleSheet('color: green')
          s = "前" if dir==0 else "后"
-         label.setText("型号："+result["model"]+"；\t尺寸:"+result["size"]+"；\t方向："+str(s))
+         label.setText("型号："+result["model"]+"；\t尺寸："+result["size"]+"；\t方向："+str(s))
          # self.ui.label_2.setText("型号："+result["model"]+"；尺寸:"+result["size"]+"；方向："+angle)
          # 写入csv
          self.write_csv(result["model"], result["size"], result["color"], True, x, y, angle)
@@ -441,6 +448,8 @@ class QmyWidget(QWidget):
                while result["port"][result["port_index"]] > self.num and result["port_index"] < len(result["port"]):
                   result["port_index"] = result["port_index"]+1
                if result["port_index"] < len(result["port"]):
+                  text = str(label.text()) + "；\t输出端口：" + str(result["port"][result["port_index"]])
+                  label.setText(text)
                   self.relay_export_thread.export(result["port"][result["port_index"]], float(self.settings.value("delay_time")))
                   result["port_index"] = result["port_index"]+1
                if result["port_index"] >= len(result["port"]):
@@ -619,7 +628,7 @@ class QmyWidget(QWidget):
          self.ui.btnTestCamera.setEnabled(False)
 
          # 画网格
-         drawgrid(cvImage, 4)
+         drawgrid(cvImage, 2)
 
          cv2.imshow("Test Camera", cvImage)
          gc.collect()
@@ -758,7 +767,7 @@ class QmyWidget(QWidget):
       # selectROI和imshow的默认类型是BGR
       rImage = cv2.cvtColor(rImage, cv2.COLOR_RGB2BGR)
       # 画网格
-      drawgrid(rImage, 10)
+      # drawgrid(rImage, 10)
       min_x, min_y, w, h = cv2.selectROI('select_roi', rImage)
       if len(rImage.shape) == 3:
          nImage = image[int(min_y/dsize):int((min_y+h)/dsize), int(min_x/dsize):int((min_x+w)/dsize), :]
