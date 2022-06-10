@@ -840,14 +840,14 @@
 # print(length)
 
 #-------------------------------------------------
-import cv2 as cv
-import time
-
-img = cv.imread("./data_test/test/right_3.bmp")
-# img = cv.resize(img, dsize=None, fx=0.3, fy=0.3, interpolation=cv.INTER_LINEAR)
-start = time.time()
-img_flip = cv.flip(img, 0)
-print(time.time()-start)
+# import cv2 as cv
+# import time
+#
+# img = cv.imread("./data_test/test/right_3.bmp")
+# # img = cv.resize(img, dsize=None, fx=0.3, fy=0.3, interpolation=cv.INTER_LINEAR)
+# start = time.time()
+# img_flip = cv.flip(img, 0)
+# print(time.time()-start)
 # cv.imshow("img", img)
 # cv.imshow("img_flip", img_flip)
 # cv.waitKey(0)
@@ -856,3 +856,7 @@ print(time.time()-start)
 # import numpy
 #
 # print(numpy.pi/2)
+#----------------------------------------
+arr = [0,1,2,3]
+if 4 in arr:
+   print(1)

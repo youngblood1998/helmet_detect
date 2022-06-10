@@ -24,7 +24,7 @@ from camera_lib import enumCameras, openCamera, closeCamera, setSoftTriggerConf,
 # from detect_lib.sift_flann_new import SiftFlann
 from detect_lib.surf_bf_new import SurfBf
 from detect_lib.draw_line import drawline, drawgrid
-from relay_lib import init_relay, close_relay, test_delay, export_relay
+from relay_lib import init_relay, close_relay, test_delay, export_relay, export_arr_relay
 from detect_lib.hist_compare import hist_compare
 from myDialogMakeTemp import QmyDialogMakeTemp
 from myDialogSetParams import QmyDialogSetParams
@@ -119,6 +119,10 @@ class RelayExport_thread(QThread):
    def export(self, port, t):
       # 继电器输出
       export_relay(self.relay_dic, port, t)
+
+   def export_arr(self, port_arr, t):
+      # 继电器多端口输出
+      export_arr_relay(self.relay_dic, port_arr, t)
 
 
 class QmyWidget(QWidget):
@@ -444,16 +448,20 @@ class QmyWidget(QWidget):
          #    self.relay_export_thread.export(result["port"], float(self.settings.value("delay_time")))
             # export_relay(self.relay_dic, result["port"])
          if self.relay_flag:
-            if result["port_index"] < len(result["port"]):
-               while result["port"][result["port_index"]] > self.num and result["port_index"] < len(result["port"]):
-                  result["port_index"] = result["port_index"]+1
+            if int(result["check"]) == 0:
                if result["port_index"] < len(result["port"]):
-                  text = str(label.text()) + "；\t输出端口：" + str(result["port"][result["port_index"]])
-                  label.setText(text)
-                  self.relay_export_thread.export(result["port"][result["port_index"]], float(self.settings.value("delay_time")))
-                  result["port_index"] = result["port_index"]+1
-               if result["port_index"] >= len(result["port"]):
-                  result["port_index"] = 0
+                  while result["port"][result["port_index"]] > self.num and result["port_index"] < len(result["port"]):
+                     result["port_index"] = result["port_index"]+1
+                  if result["port_index"] < len(result["port"]):
+                     text = str(label.text()) + "；\t输出端口：" + str(result["port"][result["port_index"]])
+                     label.setText(text)
+                     self.relay_export_thread.export(result["port"][result["port_index"]], float(self.settings.value("delay_time")))
+                     result["port_index"] = result["port_index"]+1
+                  if result["port_index"] >= len(result["port"]):
+                     result["port_index"] = 0
+            else:
+               self.relay_export_thread.export_arr(result["port"], float(self.settings.value("delay_time")))
+
       else:
          label = self.ui.label_2
          label.setStyleSheet('color: red')
@@ -905,6 +913,7 @@ class QmyWidget(QWidget):
          # print(temp["port"])
          # 用于继电器端口循环输出的索引
          temp["port_index"] = 0
+         temp["check"] = t["check"]
          temp["model"] = t["model"]
          temp["size"] = t["size"]
          temp["color"] = t["color"]

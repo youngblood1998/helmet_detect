@@ -57,6 +57,7 @@ class QmyDialogSelectTemp(QDialog):
    def get_temp(self):
       for i in range(len(self.selectedTemp)):
          self.selectedTemp[i]["port"] = self.ui.tableWidgetSelectTemp.item(i, 0).text()
+         self.selectedTemp[i]["check"] = 1 if self.ui.tableWidgetSelectTemp.item(i, 1).checkState() == Qt.Checked else 0
       return copy.deepcopy(self.selectedTemp)
 
 
@@ -122,7 +123,7 @@ class QmyDialogSelectTemp(QDialog):
       # 展示已选模板
       for t in self.selectedTemp:
 
-         column = 1
+         column = 2
          row = self.ui.tableWidgetSelectTemp.rowCount()
          self.ui.tableWidgetSelectTemp.insertRow(row)
 
@@ -133,8 +134,22 @@ class QmyDialogSelectTemp(QDialog):
             item = QTableWidgetItem("")
          self.ui.tableWidgetSelectTemp.setItem(row, 0, item)
 
+         # 选择是否同时输出
+         if "check" in t:
+            if int(t["check"]) == 0:
+               item = QTableWidgetItem()
+               item.setCheckState(Qt.Unchecked)
+            else:
+               item = QTableWidgetItem()
+               item.setCheckState(Qt.Checked)
+            self.ui.tableWidgetSelectTemp.setItem(row, 1, item)
+         else:
+            item = QTableWidgetItem()
+            item.setCheckState(Qt.Unchecked)
+            self.ui.tableWidgetSelectTemp.setItem(row, 1, item)
+
          for index in t:
-            if column == 7:
+            if column == 8:
                break
             item = QTableWidgetItem(str(t[index]))
             self.ui.tableWidgetSelectTemp.setItem(row, column, item)
@@ -168,8 +183,8 @@ class QmyDialogSelectTemp(QDialog):
    # 展示选择的模板
    def do_showSelectTemp(self):
       # 设置表格列名
-      self.ui.tableWidgetSelectTemp.setColumnCount(7)
-      headerText = ["输出端口", "型号", "尺寸", "颜色", "日期", "图片宽", "图片高"]
+      self.ui.tableWidgetSelectTemp.setColumnCount(8)
+      headerText = ["输出端口", "同时输出", "型号", "尺寸", "颜色", "日期", "图片宽", "图片高"]
       for i in range(len(headerText)):
          headerItem = QTableWidgetItem(headerText[i])
          self.ui.tableWidgetSelectTemp.setHorizontalHeaderItem(i, headerItem)
