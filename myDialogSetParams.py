@@ -38,6 +38,7 @@ class QmyDialogSetParams(QDialog):
       setting = QSettings('./config.ini', QSettings.IniFormat)
       self.ui.spinBoxExposureTime.setValue(int(setting.value('exposure_time')))
       self.ui.spinBoxTriggerDelay.setValue(int(setting.value('trigger_delay')))
+      self.ui.spinBoxIntervalTime.setValue(int(setting.value('interval_time')))
       self.ui.doubleSpinBoxDelay.setValue(float(setting.value('delay_time')))
       self.ui.spinBoxMinMatchCount.setValue(int(setting.value('min_match_count')))
       self.ui.doubleSpinBoxResizeTimes.setValue(float(setting.value('resize_times')))
@@ -56,6 +57,7 @@ class QmyDialogSetParams(QDialog):
       new_params = {
          'exposure_time': self.ui.spinBoxExposureTime.value(),
          'trigger_delay': self.ui.spinBoxTriggerDelay.value(),
+         'interval_time': self.ui.spinBoxIntervalTime.value(),
          'delay_time': self.ui.doubleSpinBoxDelay.value(),
          'min_match_count': self.ui.spinBoxMinMatchCount.value(),
          'resize_times': self.ui.doubleSpinBoxResizeTimes.value(),
@@ -80,6 +82,7 @@ class QmyDialogSetParams(QDialog):
       # 恢复默认参数
       self.ui.spinBoxExposureTime.setValue(self.default_params['exposure_time'])
       self.ui.spinBoxTriggerDelay.setValue(self.default_params['trigger_delay'])
+      self.ui.spinBoxIntervalTime.setValue(self.default_params['interval_time'])
       self.ui.doubleSpinBoxDelay.setValue(self.default_params['delay_time'])
       self.ui.spinBoxMinMatchCount.setValue(self.default_params['min_match_count'])
       self.ui.doubleSpinBoxResizeTimes.setValue(self.default_params['resize_times'])
@@ -99,6 +102,7 @@ class QmyDialogSetParams(QDialog):
       new_default_params = {
          'exposure_time': self.ui.spinBoxExposureTime.value(),
          'trigger_delay': self.ui.spinBoxTriggerDelay.value(),
+         'interval_time': self.ui.spinBoxIntervalTime.value(),
          'delay_time': self.ui.doubleSpinBoxDelay.value(),
          'min_match_count': self.ui.spinBoxMinMatchCount.value(),
          'resize_times': self.ui.doubleSpinBoxResizeTimes.value(),

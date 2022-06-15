@@ -2,6 +2,7 @@
 
 # import copy
 import ctypes
+import time
 import datetime
 import gc
 import os
@@ -125,6 +126,31 @@ class RelayExport_thread(QThread):
       export_arr_relay(self.relay_dic, port_arr, t)
 
 
+# 触发间隔的线程
+class Interval_thread(QThread):
+   #  通过类成员对象定义信号对象
+   signal_2 = pyqtSignal(int)
+
+   def __init__(self):
+      super(Relaythread, self).__init__()
+
+   def __del__(self):
+      try:
+         self.wait()
+      except:
+         pass
+
+   def run(self):
+      try:
+         self.wait()
+      except:
+         return
+
+   def sleep(self, t):
+      time.sleep(t)
+      self.signal_2.emit(1)
+
+
 class QmyWidget(QWidget):
 
    def __init__(self, parent=None):
@@ -136,6 +162,7 @@ class QmyWidget(QWidget):
       self.detect_flag = False   # 检测开关标志
       self.tcp_flag = False      # TCP连接标志
       self.relay_flag = False    # 继电器连接标志
+      self.interval_flag = False    # 触发间隔标志
 
       # 将一部分按钮设置成非使能状态
       self.ui.btnLinkCamera.setEnabled(False)
@@ -155,6 +182,7 @@ class QmyWidget(QWidget):
       self.fixed_params = {
          'exposure_time': 19000,
          'trigger_delay': 1000000,
+         'interval_time': 2,
          'delay_time': 0.5,
          'min_match_count': 5,
          'resize_times': 0.1,
@@ -171,6 +199,7 @@ class QmyWidget(QWidget):
       self.select_temp = []   # 选择的模板
       self.temp_arr = []   # 选择的模板(包含关键点和描述子)
       self.mythread = None
+      self.interval_thread = None
       self.num = 0      # 继电器端口数
 
       # 有无默认配置文件，没有的话创建并设置默认参数
@@ -263,6 +292,12 @@ class QmyWidget(QWidget):
 
    # 回调函数，用于检测
    def test_callback(self, frame, userInfo):
+      # 判断是否在间隔时间内，是则不执行检测
+      if self.interval_flag:
+         return
+      self.interval_flag = True
+      self.interval_thread.sleep(int(self.settings.value('interval_time')))
+
       nRet = frame.contents.valid(frame)
       if (nRet != 0):
          print("frame is invalid!")
@@ -380,12 +415,12 @@ class QmyWidget(QWidget):
       # result, dir, imageDraw, angle, x, y = surf.match(detect_temp_arr, cvtImage)
       result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage)
 
-      # 上下反转再检测
-      if (angle > 0.2 and angle < numpy.pi/2-0.2) or (angle > -numpy.pi+0.2 and angle < -numpy.pi/2-0.2):
-         cvtImage_flip = cv2.flip(cvtImage, 0)
-         result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage_flip)
-         imageDraw = cv2.flip(imageDraw, 0)
-         angle = -angle
+      # 上下反转再检测,实测没用
+      # if (angle > 0.2 and angle < numpy.pi/2-0.2) or (angle > -numpy.pi+0.2 and angle < -numpy.pi/2-0.2):
+      #    cvtImage_flip = cv2.flip(cvtImage, 0)
+      #    result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage_flip)
+      #    imageDraw = cv2.flip(imageDraw, 0)
+      #    angle = -angle
 
       # 匹配结果不为空，则显示输入输出图像
       if not result is None:
@@ -616,7 +651,7 @@ class QmyWidget(QWidget):
          # --- end if ---
 
          # 将相机内容缩小显示
-         cvImage = cv2.resize(cvImage, dsize=None, fx=0.3, fy=0.3, interpolation=cv2.INTER_LINEAR)
+         cvImage = cv2.resize(cvImage, dsize=None, fx=0.25, fy=0.25, interpolation=cv2.INTER_LINEAR)
 
          # # 格式转换
          # if len(cvImage.shape) == 3:
@@ -942,6 +977,10 @@ class QmyWidget(QWidget):
       self.ui.btnTestRelay.setEnabled(True)
 
 
+   def do_interval_set_false(self):
+      self.interval_flag = False
+
+
 ##  ==============event处理函数==========================
    # 关闭事件
    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
@@ -1098,6 +1137,10 @@ class QmyWidget(QWidget):
    # 开始检测
    @pyqtSlot()
    def on_btnStartDetect_clicked(self):
+      self.interval_thread = Interval_thread()
+      self.interval_thread.start()
+      self.interval_thread.signal_2.connect(self.do_interval_set_false)
+
       # 没有模板则提示
       if len(self.select_temp) == 0:
          QMessageBox.warning(self, "警告", "请选择模板")

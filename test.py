@@ -829,15 +829,15 @@
 # length = ((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)**0.5
 # print(length)
 #----------------------------------------------------
-# import cv2 as cv
-#
-# img = cv.imread("./data_test/test/right_3.bmp")
-# img = cv.resize(img, dsize=None, fx=0.3, fy=0.3, interpolation=cv.INTER_LINEAR)
-# min_x1, min_y1, w1, h1 = cv.selectROI("roi1", img)
-# min_x2, min_y2, w2, h2 = cv.selectROI("roi2", img)
-#
-# length = ((min_x1-min_x2)**2 + (min_y1-min_y2)**2)**0.5
-# print(length)
+import cv2 as cv
+
+img = cv.imread("./data_test/test/right_2.bmp")
+img = cv.resize(img, dsize=None, fx=0.1, fy=0.1, interpolation=cv.INTER_LINEAR)
+min_x1, min_y1, w1, h1 = cv.selectROI("roi1", img)
+min_x2, min_y2, w2, h2 = cv.selectROI("roi2", img)
+
+length = ((min_x1-min_x2)**2 + (min_y1-min_y2)**2)**0.5
+print(length)
 
 #-------------------------------------------------
 # import cv2 as cv
@@ -857,6 +857,6 @@
 #
 # print(numpy.pi/2)
 #----------------------------------------
-arr = [0,1,2,3]
-if 4 in arr:
-   print(1)
+# arr = [0,1,2,3]
+# if 4 in arr:
+#    print(1)

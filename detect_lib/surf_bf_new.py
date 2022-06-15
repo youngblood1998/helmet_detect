@@ -88,7 +88,7 @@ class SurfBf:
             # 对这个轮廓图执行透视变换
             # print(M)
             dst = np.int32(cv2.perspectiveTransform(pts, M))
-
+            # print(dst)
             # 截取图片做颜色对比
             p_0 = dst[0][0]
             p_1 = dst[1][0]
@@ -159,7 +159,7 @@ class SurfBf:
             # area1 = im1_width * im1_height
             # 匹配点个数、框的四个点、变换矩阵
             matches, dst, matrix = self.surf_bf(im1, temp["kp"], temp["des"], im2)
-            # print(dst[2][0][0])
+            # print(dst)
             # 匹配点太少的话直接跳过
             if len(dst) == 0:
                 # print(1)
@@ -169,7 +169,7 @@ class SurfBf:
             point1 = (int((dst[2][0][0] + dst[3][0][0])/2), int((dst[2][0][1] + dst[3][0][1])/2))
             cal = CalArea()
             length2 = cal.get_distance(point0, point1)
-
+            # print(point0, point1)
             # # 计算匹配框的面积
             # cal = CalArea()
             # area2 = cal.get_point_area([dst[0][0], dst[1][0], dst[2][0], dst[3][0]])
@@ -210,6 +210,7 @@ class SurfBf:
                         draw_point = dst  # 最好匹配的框
                         best_temp = temp_cmp  # 最好模板的路径
                         angles = cal.rotationMatrix_to_eulerAngles(matrix)  # 角度
+        # print(angles)
         print("-"*20)
             # # 选择最好的匹配
             # if matches > max_matches:

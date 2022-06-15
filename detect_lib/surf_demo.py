@@ -7,8 +7,8 @@ start = time.time()
 MIN_MATCH_COUNT = 10
 fsize = 0.1
 
-im1 = cv2.imread('../data_test/template_color/w-l.bmp', cv2.IMREAD_COLOR)
-im2 = cv2.imread('../data_test/matchs_color/w-l-2.bmp', cv2.IMREAD_COLOR)  # queryImage
+im1 = cv2.imread('../data_test/test/left_1.bmp', cv2.IMREAD_COLOR)
+im2 = cv2.imread('../data_test/test/left_4.bmp', cv2.IMREAD_COLOR)  # queryImage
 # im1 = cv2.imread('./data_color/templates/o1.bmp', cv2.IMREAD_COLOR)
 # im2 = cv2.imread('./data_color/matches/o1-1.bmp', cv2.IMREAD_COLOR)  # queryImage
 im1 = cv2.resize(im1, dsize=None, fx=fsize, fy=fsize, interpolation=cv2.INTER_LINEAR)
@@ -23,6 +23,10 @@ img1 = clahe.apply(img1)
 img2 = clahe.apply(img2)
 cv2.imshow("img1", img1)
 cv2.imshow("img2", img2)
+
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
+# exit(0)
 
 # sift = cv2.xfeatures2d.SIFT_create()
 # kp1, des1 = sift.detectAndCompute(img1, None)

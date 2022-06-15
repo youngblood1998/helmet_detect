@@ -883,9 +883,9 @@ class QmyWidget(QWidget):
    # 检测相机
    @pyqtSlot()
    def on_btnDetectCamera_clicked(self):
-      image_arr = ["left_1.bmp", "left_2.bmp", "left_3.bmp", "left_4.bmp", "left_5.bmp", "left_6.bmp",
-                   "right_1.bmp", "right_2.bmp", "right_3.bmp", "right_4.bmp", "right_5.bmp", "right_6.bmp"]
-      # image_arr = ["left_4.bmp"]
+      # image_arr = ["left_1.bmp", "left_2.bmp", "left_3.bmp", "left_4.bmp", "left_5.bmp", "left_6.bmp",
+      #              "right_1.bmp", "right_2.bmp", "right_3.bmp", "right_4.bmp", "right_5.bmp", "right_6.bmp"]
+      image_arr = ["left_1.bmp"]
       for image_name in image_arr:
          start = time.time()
          cvImage = cv2.imread("./data_test/test/" + image_name)
