@@ -833,11 +833,20 @@ import cv2 as cv
 
 img = cv.imread("./data_test/test/right_2.bmp")
 img = cv.resize(img, dsize=None, fx=0.1, fy=0.1, interpolation=cv.INTER_LINEAR)
-min_x1, min_y1, w1, h1 = cv.selectROI("roi1", img)
-min_x2, min_y2, w2, h2 = cv.selectROI("roi2", img)
+im_h, im_w = img.shape[0], img.shape[1]
 
-length = ((min_x1-min_x2)**2 + (min_y1-min_y2)**2)**0.5
-print(length)
+img_1 = img[int(im_h/3):int(im_h*2/3), int(im_w/3):int(im_w*2/3), :]
+
+cv.imshow("img", img)
+cv.imshow("img_1", img_1)
+
+cv.waitKey(0)
+cv.destroyAllWindows()
+# min_x1, min_y1, w1, h1 = cv.selectROI("roi1", img)
+# min_x2, min_y2, w2, h2 = cv.selectROI("roi2", img)
+#
+# length = ((min_x1-min_x2)**2 + (min_y1-min_y2)**2)**0.5
+# print(length)
 
 #-------------------------------------------------
 # import cv2 as cv

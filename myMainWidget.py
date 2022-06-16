@@ -415,12 +415,10 @@ class QmyWidget(QWidget):
       # result, dir, imageDraw, angle, x, y = surf.match(detect_temp_arr, cvtImage)
       result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage)
 
-      # 上下反转再检测,实测没用
-      # if (angle > 0.2 and angle < numpy.pi/2-0.2) or (angle > -numpy.pi+0.2 and angle < -numpy.pi/2-0.2):
-      #    cvtImage_flip = cv2.flip(cvtImage, 0)
-      #    result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage_flip)
-      #    imageDraw = cv2.flip(imageDraw, 0)
-      #    angle = -angle
+      # 左右反转再检测
+      if (angle > 0.2 and angle < numpy.pi/2-0.2) or (angle > -numpy.pi+0.2 and angle < -numpy.pi/2-0.2):
+         cvtImage_flip = cv2.flip(cvtImage, 1)
+         result, dir_useless, imageDraw_useless, angle_useless, x_useless, y_useless = surf.match(self.temp_arr, cvtImage_flip)
 
       # 匹配结果不为空，则显示输入输出图像
       if not result is None:

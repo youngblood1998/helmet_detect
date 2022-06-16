@@ -883,9 +883,9 @@ class QmyWidget(QWidget):
    # 检测相机
    @pyqtSlot()
    def on_btnDetectCamera_clicked(self):
-      # image_arr = ["left_1.bmp", "left_2.bmp", "left_3.bmp", "left_4.bmp", "left_5.bmp", "left_6.bmp",
-      #              "right_1.bmp", "right_2.bmp", "right_3.bmp", "right_4.bmp", "right_5.bmp", "right_6.bmp"]
-      image_arr = ["left_1.bmp"]
+      image_arr = ["left_1.bmp", "left_2.bmp", "left_3.bmp", "left_4.bmp", "left_5.bmp", "left_6.bmp",
+                   "right_1.bmp", "right_2.bmp", "right_3.bmp", "right_4.bmp", "right_5.bmp", "right_6.bmp"]
+      # image_arr = ["left_1.bmp"]
       for image_name in image_arr:
          start = time.time()
          cvImage = cv2.imread("./data_test/test/" + image_name)
@@ -963,6 +963,12 @@ class QmyWidget(QWidget):
          # # 返回结果，模板、方向、画出匹配框的图像
          # result, dir, imageDraw, angle, x, y = surf.match(detect_temp_arr, cvtImage)
          result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage)
+
+         # 左右反转再检测
+         if (angle > 0.2 and angle < numpy.pi / 2 - 0.2) or (angle > -numpy.pi + 0.2 and angle < -numpy.pi / 2 - 0.2):
+            cvtImage_flip = cv2.flip(cvtImage, 1)
+            result, dir_useless, imageDraw_useless, angle_useless, x_useless, y_useless = surf.match(self.temp_arr,
+                                                                                                     cvtImage_flip)
 
          # 匹配结果不为空，则显示输入输出图像
          if not result is None:

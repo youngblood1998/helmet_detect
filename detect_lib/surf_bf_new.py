@@ -90,25 +90,25 @@ class SurfBf:
             dst = np.int32(cv2.perspectiveTransform(pts, M))
             # print(dst)
             # 截取图片做颜色对比
-            p_0 = dst[0][0]
-            p_1 = dst[1][0]
-            p_2 = dst[2][0]
-            p_3 = dst[3][0]
-            min_y = int((p_1[1] + p_2[1]) / 2)
-            max_y = int((p_0[1] + p_3[1]) / 2)
-            min_x = int((p_2[0] + p_3[0]) / 2)
-            max_x = int((p_0[0] + p_1[0]) / 2)
+            # p_0 = dst[0][0]
+            # p_1 = dst[1][0]
+            # p_2 = dst[2][0]
+            # p_3 = dst[3][0]
+            # min_y = int((p_1[1] + p_2[1]) / 2)
+            # max_y = int((p_0[1] + p_3[1]) / 2)
+            # min_x = int((p_2[0] + p_3[0]) / 2)
+            # max_x = int((p_0[0] + p_1[0]) / 2)
             resize = round(0.05/self.resize_times, 2)
 
             im2_h, im2_w = im2.shape[0], im2.shape[1]
-            x_1 = min(min_x, max_x) if min(min_x, max_x) >= 0 else 0
-            x_2 = max(min_x, max_x) if max(min_x, max_x) <= im2_w else im2_w
-            y_1 = min(min_y, max_y) if min(min_y, max_y) >= 0 else 0
-            y_2 = max(min_y, max_y) if max(min_y, max_y) <= im2_h else im2_h
-            # 特殊情况过滤
-            if x_2-x_1<10 or y_2-y_1<10:
-                print("截取图过小", x_2-x_1, y_2-y_1)
-                return 0, [], None
+            # x_1 = min(min_x, max_x) if min(min_x, max_x) >= 0 else 0
+            # x_2 = max(min_x, max_x) if max(min_x, max_x) <= im2_w else im2_w
+            # y_1 = min(min_y, max_y) if min(min_y, max_y) >= 0 else 0
+            # y_2 = max(min_y, max_y) if max(min_y, max_y) <= im2_h else im2_h
+            # # 特殊情况过滤
+            # if x_2-x_1<10 or y_2-y_1<10:
+            #     print("截取图过小", x_2-x_1, y_2-y_1)
+            #     return 0, [], None
             # if min(min_x, max_x) < 0 or min(min_y, max_y) < 0 or max(min_x, max_x) > im2_w or min(min_y, max_y) > im2_h:
             #     print("有点在图外")
             #     print(min_x, min_y, max_x, max_y)
@@ -117,7 +117,8 @@ class SurfBf:
             #     print("截取图过小")
             #     print(max(min_y, max_y)-min(min_y, max_y), max(min_x, max_x)-min(min_x, max_x))
             #     return 0, [], None
-            resize_im2 = cv2.resize(im2[y_1:y_2, x_1:x_2, :], dsize=None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
+            # resize_im2 = cv2.resize(im2[y_1:y_2, x_1:x_2, :], dsize=None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
+            resize_im2 = cv2.resize(im2[int(im2_h/3):int(im2_h*2/3), int(im2_w/3):int(im2_w*2/3), :], dsize=None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
             resize_im1 = cv2.resize(im1, dsize=None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
             # print(hist_compare(resize_im2, resize_im1))
             if hist_compare(resize_im2, resize_im1) < self.hist2:
