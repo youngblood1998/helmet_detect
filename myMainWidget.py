@@ -15,7 +15,7 @@ import csv
 from socket import *
 
 from PyQt5 import QtGui
-from PyQt5.QtCore import pyqtSlot, QSettings, QThread, pyqtSignal
+from PyQt5.QtCore import pyqtSlot, QSettings, QThread, pyqtSignal, QTimer
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
 
 from ImageConvert import *
@@ -126,29 +126,29 @@ class RelayExport_thread(QThread):
       export_arr_relay(self.relay_dic, port_arr, t)
 
 
-# 触发间隔的线程
-class Interval_thread(QThread):
-   #  通过类成员对象定义信号对象
-   signal_2 = pyqtSignal(int)
-
-   def __init__(self):
-      super(Interval_thread, self).__init__()
-
-   def __del__(self):
-      try:
-         self.wait()
-      except:
-         pass
-
-   def run(self):
-      try:
-         self.wait()
-      except:
-         return
-
-   def sleep(self, t):
-      time.sleep(t)
-      self.signal_2.emit(1)
+# # 触发间隔的线程
+# class Interval_thread(QThread):
+#    #  通过类成员对象定义信号对象
+#    signal_2 = pyqtSignal(int)
+#
+#    def __init__(self):
+#       super(Interval_thread, self).__init__()
+#
+#    def __del__(self):
+#       try:
+#          self.wait()
+#       except:
+#          pass
+#
+#    def run(self):
+#       try:
+#          self.wait()
+#       except:
+#          return
+#
+#    def sleep(self, t):
+#       time.sleep(t)
+#       self.signal_2.emit(1)
 
 
 class QmyWidget(QWidget):
@@ -199,7 +199,11 @@ class QmyWidget(QWidget):
       self.select_temp = []   # 选择的模板
       self.temp_arr = []   # 选择的模板(包含关键点和描述子)
       self.mythread = None
-      self.interval_thread = None
+      # self.interval_thread = None
+      # 设置一个定时器，单次触发
+      self.timer = QTimer()
+      self.timer.timeout.connect(self.do_interval_set_false)
+      self.timer.setSingleShot(True)
       self.num = 0      # 继电器端口数
 
       # 有无默认配置文件，没有的话创建并设置默认参数
@@ -220,6 +224,8 @@ class QmyWidget(QWidget):
       self.GrabbingFrameCallbackFuncEx = callbackFuncEx(self.test_callback)
       self.UnGrabbingFrameCallbackFuncEx = callbackFuncEx(self.test_callback)
 
+      # 打开软件时打开继电器
+      self.on_btnOpenRelay_clicked()
 
 ##  ==============自定义功能函数========================
    # 输出csv文件
@@ -296,7 +302,8 @@ class QmyWidget(QWidget):
       if self.interval_flag:
          return
       self.interval_flag = True
-      self.interval_thread.sleep(int(self.settings.value('interval_time')))
+      self.timer.start(int(self.settings.value('interval_time'))*1000)
+      # self.interval_thread.sleep(int(self.settings.value('interval_time')))
 
       nRet = frame.contents.valid(frame)
       if (nRet != 0):
@@ -1135,9 +1142,9 @@ class QmyWidget(QWidget):
    # 开始检测
    @pyqtSlot()
    def on_btnStartDetect_clicked(self):
-      self.interval_thread = Interval_thread()
-      self.interval_thread.start()
-      self.interval_thread.signal_2.connect(self.do_interval_set_false)
+      # self.interval_thread = Interval_thread()
+      # self.interval_thread.start()
+      # self.interval_thread.signal_2.connect(self.do_interval_set_false)
 
       # 没有模板则提示
       if len(self.select_temp) == 0:

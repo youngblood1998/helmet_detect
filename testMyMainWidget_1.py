@@ -16,7 +16,7 @@ import csv
 from socket import *
 
 from PyQt5 import QtGui
-from PyQt5.QtCore import pyqtSlot, QSettings, QThread, pyqtSignal
+from PyQt5.QtCore import pyqtSlot, QSettings, QThread, pyqtSignal, QTimer
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
 
 from ImageConvert import *
@@ -114,7 +114,7 @@ class QmyWidget(QWidget):
       self.ui.btnLinkCamera.setEnabled(False)
       self.ui.btnTestCamera.setEnabled(False)
       self.ui.btnCloseCamera.setEnabled(False)
-      self.ui.btnStartDetect.setEnabled(False)
+      self.ui.btnStartDetect.setEnabled(True)
       self.ui.btnStopDetect.setEnabled(False)
       self.ui.btnMakeTemp.setEnabled(False)
       self.ui.btnTCPClose.setEnabled(False)
@@ -144,6 +144,9 @@ class QmyWidget(QWidget):
       self.temp_arr = []   # 选择的模板(包含关键点和描述子)
       self.mythread = None
       self.num = 0
+      self.timer = QTimer()
+      self.timer.timeout.connect(self.do_time)
+      self.timer.setSingleShot(True)
 
       # 有无默认配置文件，没有的话创建并设置默认参数
       if not os.path.exists('./defaultConfig.ini'):
@@ -858,6 +861,9 @@ class QmyWidget(QWidget):
       self.ui.btnTestRelay.setEnabled(True)
 
 
+   def do_time(self):
+      print(2)
+
 ##  ==============event处理函数==========================
    # 关闭事件
    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
@@ -1151,6 +1157,8 @@ class QmyWidget(QWidget):
    # 开始检测
    @pyqtSlot()
    def on_btnStartDetect_clicked(self):
+      self.timer.start(5*1000)
+      print(1)
       # 没有模板则提示
       if len(self.select_temp) == 0:
          QMessageBox.warning(self, "警告", "请选择模板")
