@@ -132,7 +132,7 @@ class Interval_thread(QThread):
    signal_2 = pyqtSignal(int)
 
    def __init__(self):
-      super(Relaythread, self).__init__()
+      super(Interval_thread, self).__init__()
 
    def __del__(self):
       try:
