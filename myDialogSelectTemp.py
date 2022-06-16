@@ -58,6 +58,8 @@ class QmyDialogSelectTemp(QDialog):
       for i in range(len(self.selectedTemp)):
          self.selectedTemp[i]["port"] = self.ui.tableWidgetSelectTemp.item(i, 0).text()
          self.selectedTemp[i]["check"] = 1 if self.ui.tableWidgetSelectTemp.item(i, 1).checkState() == Qt.Checked else 0
+         self.selectedTemp[i]["forward"] = 1 if self.ui.tableWidgetSelectTemp.item(i, 2).checkState() == Qt.Checked else 0
+         self.selectedTemp[i]["backward"] = 1 if self.ui.tableWidgetSelectTemp.item(i, 3).checkState() == Qt.Checked else 0
       return copy.deepcopy(self.selectedTemp)
 
 
@@ -123,7 +125,7 @@ class QmyDialogSelectTemp(QDialog):
       # 展示已选模板
       for t in self.selectedTemp:
 
-         column = 2
+         column = 4
          row = self.ui.tableWidgetSelectTemp.rowCount()
          self.ui.tableWidgetSelectTemp.insertRow(row)
 
@@ -148,8 +150,36 @@ class QmyDialogSelectTemp(QDialog):
             item.setCheckState(Qt.Unchecked)
             self.ui.tableWidgetSelectTemp.setItem(row, 1, item)
 
+         # 选择正向时是否输出
+         if "forward" in t:
+            if int(t["forward"]) == 0:
+               item = QTableWidgetItem()
+               item.setCheckState(Qt.Unchecked)
+            else:
+               item = QTableWidgetItem()
+               item.setCheckState(Qt.Checked)
+            self.ui.tableWidgetSelectTemp.setItem(row, 2, item)
+         else:
+            item = QTableWidgetItem()
+            item.setCheckState(Qt.Checked)
+            self.ui.tableWidgetSelectTemp.setItem(row, 2, item)
+
+         # 选择反向时是否输出
+         if "backward" in t:
+            if int(t["backward"]) == 0:
+               item = QTableWidgetItem()
+               item.setCheckState(Qt.Unchecked)
+            else:
+               item = QTableWidgetItem()
+               item.setCheckState(Qt.Checked)
+            self.ui.tableWidgetSelectTemp.setItem(row, 3, item)
+         else:
+            item = QTableWidgetItem()
+            item.setCheckState(Qt.Unchecked)
+            self.ui.tableWidgetSelectTemp.setItem(row, 3, item)
+
          for index in t:
-            if column == 8:
+            if column == 10:
                break
             item = QTableWidgetItem(str(t[index]))
             self.ui.tableWidgetSelectTemp.setItem(row, column, item)
@@ -162,6 +192,10 @@ class QmyDialogSelectTemp(QDialog):
       else:
          self.ui.btnRemove.setEnabled(False)
          self.ui.btnClear.setEnabled(False)
+
+      # for i in range(self.ui.tableWidgetSelectTemp.columnCount()):
+      #    for j in range(self.ui.tableWidgetSelectTemp.rowCount()):
+      #       self.ui.tableWidgetSelectTemp.item(j, i).setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
 
 
    # 展示所有模板
@@ -183,8 +217,8 @@ class QmyDialogSelectTemp(QDialog):
    # 展示选择的模板
    def do_showSelectTemp(self):
       # 设置表格列名
-      self.ui.tableWidgetSelectTemp.setColumnCount(8)
-      headerText = ["输出端口", "同时输出", "型号", "尺寸", "颜色", "日期", "图片宽", "图片高"]
+      self.ui.tableWidgetSelectTemp.setColumnCount(10)
+      headerText = ["输出端口", "同时输出", "正向", "反向", "型号", "尺寸", "颜色", "日期", "图片宽", "图片高"]
       for i in range(len(headerText)):
          headerItem = QTableWidgetItem(headerText[i])
          self.ui.tableWidgetSelectTemp.setHorizontalHeaderItem(i, headerItem)

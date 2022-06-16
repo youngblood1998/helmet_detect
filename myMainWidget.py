@@ -487,20 +487,21 @@ class QmyWidget(QWidget):
          # if self.relay_flag:
          #    self.relay_export_thread.export(result["port"], float(self.settings.value("delay_time")))
             # export_relay(self.relay_dic, result["port"])
-         if self.relay_flag:
-            if int(result["check"]) == 0:
-               if result["port_index"] < len(result["port"]):
-                  while result["port"][result["port_index"]] > self.num and result["port_index"] < len(result["port"]):
-                     result["port_index"] = result["port_index"]+1
+         if (dir == 0 and result["forward"] == 1) or (dir == 1 and result["backward"] == 1):
+            if self.relay_flag:
+               if int(result["check"]) == 0:
                   if result["port_index"] < len(result["port"]):
-                     text = str(label.text()) + "；\t输出端口：" + str(result["port"][result["port_index"]])
-                     label.setText(text)
-                     self.relay_export_thread.export(result["port"][result["port_index"]], float(self.settings.value("delay_time")))
-                     result["port_index"] = result["port_index"]+1
-                  if result["port_index"] >= len(result["port"]):
-                     result["port_index"] = 0
-            else:
-               self.relay_export_thread.export_arr(result["port"], float(self.settings.value("delay_time")))
+                     while result["port"][result["port_index"]] > self.num and result["port_index"] < len(result["port"]):
+                        result["port_index"] = result["port_index"]+1
+                     if result["port_index"] < len(result["port"]):
+                        text = str(label.text()) + "；\t输出端口：" + str(result["port"][result["port_index"]])
+                        label.setText(text)
+                        self.relay_export_thread.export(result["port"][result["port_index"]], float(self.settings.value("delay_time")))
+                        result["port_index"] = result["port_index"]+1
+                     if result["port_index"] >= len(result["port"]):
+                        result["port_index"] = 0
+               else:
+                  self.relay_export_thread.export_arr(result["port"], float(self.settings.value("delay_time")))
 
       else:
          label = self.ui.label_2
@@ -954,6 +955,8 @@ class QmyWidget(QWidget):
          # 用于继电器端口循环输出的索引
          temp["port_index"] = 0
          temp["check"] = t["check"]
+         temp["forward"] = t["forward"]
+         temp["backward"] = t["backward"]
          temp["model"] = t["model"]
          temp["size"] = t["size"]
          temp["color"] = t["color"]
