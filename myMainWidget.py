@@ -153,6 +153,8 @@ class RelayExport_thread(QThread):
 
 class QmyWidget(QWidget):
 
+   interval_signal = pyqtSignal(int)
+
    def __init__(self, parent=None):
       super().__init__(parent)  # 调用父类构造函数，创建窗体
       self.ui = Ui_Widget()  # 创建UI对象
@@ -163,6 +165,7 @@ class QmyWidget(QWidget):
       self.tcp_flag = False      # TCP连接标志
       self.relay_flag = False    # 继电器连接标志
       self.interval_flag = False    # 触发间隔标志
+      self.ignore_flag = False      # 是否忽略颜色
 
       # 将一部分按钮设置成非使能状态
       self.ui.btnLinkCamera.setEnabled(False)
@@ -198,12 +201,11 @@ class QmyWidget(QWidget):
 
       self.select_temp = []   # 选择的模板
       self.temp_arr = []   # 选择的模板(包含关键点和描述子)
+      self.temp_arr_ignore = {}  # 忽略颜色时的模板数组
+      self.temp_arr_ignore_index = {}
       self.mythread = None
       # self.interval_thread = None
-      # 设置一个定时器，单次触发
-      self.timer = QTimer()
-      self.timer.timeout.connect(self.do_interval_set_false)
-      self.timer.setSingleShot(True)
+      self.interval_signal.connect(self.do_interval_set_true)
       self.num = 0      # 继电器端口数
 
       # 有无默认配置文件，没有的话创建并设置默认参数
@@ -299,225 +301,241 @@ class QmyWidget(QWidget):
    # 回调函数，用于检测
    def test_callback(self, frame, userInfo):
       # 判断是否在间隔时间内，是则不执行检测
-      if self.interval_flag:
-         return
-      self.interval_flag = True
-      self.timer.start(int(self.settings.value('interval_time'))*1000)
-      # self.interval_thread.sleep(int(self.settings.value('interval_time')))
+      if not self.interval_flag:
+         self.interval_signal.emit(1)
+         # self.interval_thread.sleep(int(self.settings.value('interval_time')))
 
-      nRet = frame.contents.valid(frame)
-      if (nRet != 0):
-         print("frame is invalid!")
+         nRet = frame.contents.valid(frame)
+         if (nRet != 0):
+            print("frame is invalid!")
+            # 释放驱动图像缓存资源
+            frame.contents.release(frame)
+            return -1
+
+         print("BlockId = %d userInfo = %s" % (frame.contents.getBlockId(frame), c_char_p(userInfo).value))
+
+         imageParams = IMGCNV_SOpenParam()
+         imageParams.dataSize = frame.contents.getImageSize(frame)
+         imageParams.height = frame.contents.getImageHeight(frame)
+         imageParams.width = frame.contents.getImageWidth(frame)
+         imageParams.paddingX = frame.contents.getImagePaddingX(frame)
+         imageParams.paddingY = frame.contents.getImagePaddingY(frame)
+         imageParams.pixelForamt = frame.contents.getImagePixelFormat(frame)
+
+         # 将裸数据图像拷出
+         imageBuff = frame.contents.getImage(frame)
+         userBuff = c_buffer(b'\0', imageParams.dataSize)
+         memmove(userBuff, c_char_p(imageBuff), imageParams.dataSize)
+
          # 释放驱动图像缓存资源
          frame.contents.release(frame)
-         return -1
 
-      print("BlockId = %d userInfo = %s" % (frame.contents.getBlockId(frame), c_char_p(userInfo).value))
-
-      imageParams = IMGCNV_SOpenParam()
-      imageParams.dataSize = frame.contents.getImageSize(frame)
-      imageParams.height = frame.contents.getImageHeight(frame)
-      imageParams.width = frame.contents.getImageWidth(frame)
-      imageParams.paddingX = frame.contents.getImagePaddingX(frame)
-      imageParams.paddingY = frame.contents.getImagePaddingY(frame)
-      imageParams.pixelForamt = frame.contents.getImagePixelFormat(frame)
-
-      # 将裸数据图像拷出
-      imageBuff = frame.contents.getImage(frame)
-      userBuff = c_buffer(b'\0', imageParams.dataSize)
-      memmove(userBuff, c_char_p(imageBuff), imageParams.dataSize)
-
-      # 释放驱动图像缓存资源
-      frame.contents.release(frame)
-
-      # 如果图像格式是 Mono8 直接使用
-      if imageParams.pixelForamt == EPixelType.gvspPixelMono8:
-         grayByteArray = bytearray(userBuff)
-         cvImage = numpy.array(grayByteArray).reshape(imageParams.height, imageParams.width)
-      else:
-         # 转码 => BGR24
-         rgbSize = c_int()
-         rgbBuff = c_buffer(b'\0', imageParams.height * imageParams.width * 3)
-
-         nRet = IMGCNV_ConvertToBGR24(cast(userBuff, c_void_p), \
-                                      byref(imageParams), \
-                                      cast(rgbBuff, c_void_p), \
-                                      byref(rgbSize))
-
-         colorByteArray = bytearray(rgbBuff)
-         cvImage = numpy.array(colorByteArray).reshape(imageParams.height, imageParams.width, 3)
-
-      # 格式转换
-      if len(cvImage.shape) == 3:
-         cvtImage = cv2.cvtColor(cvImage, cv2.COLOR_BGR2RGB)
-      else:
-         cvtImage = cv2.cvtColor(cvImage, cv2.COLOR_GRAY2RGB)
-
-      # 显示输入
-      try:
-         qt_image = QtGui.QImage(cvtImage.data,
-                                 cvtImage.shape[1],
-                                 cvtImage.shape[0],
-                                 cvtImage.shape[1] * 3,
-                                 QtGui.QImage.Format.Format_RGB888)
-
-         w = cvtImage.shape[1]   # 图像宽度
-         h = cvtImage.shape[0]   # 图像高度
-         W = self.ui.labInput.size().width()    # 显示框的宽度
-         H = self.ui.labInput.size().height()   # 显示框的高度
-
-         # 自适应图像宽高
-         if float(H) / h > float(W) / w:
-            self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToWidth(W))
+         # 如果图像格式是 Mono8 直接使用
+         if imageParams.pixelForamt == EPixelType.gvspPixelMono8:
+            grayByteArray = bytearray(userBuff)
+            cvImage = numpy.array(grayByteArray).reshape(imageParams.height, imageParams.width)
          else:
-            self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
-      except Exception as e:
-         QMessageBox.warning(self, "警告", "图片输入出错")
+            # 转码 => BGR24
+            rgbSize = c_int()
+            rgbBuff = c_buffer(b'\0', imageParams.height * imageParams.width * 3)
 
-      # 清空输入图像和输出图像
-      self.ui.labOutput.clear()
-      self.ui.label_2.clear()
+            nRet = IMGCNV_ConvertToBGR24(cast(userBuff, c_void_p), \
+                                         byref(imageParams), \
+                                         cast(rgbBuff, c_void_p), \
+                                         byref(rgbSize))
 
-      # # 检测
-      # sift = SiftFlann(min_match_count=int(self.settings.value("min_match_count")),
-      #                  resize_times=float(self.settings.value("resize_times")),
-      #                  max_matches=int(self.settings.value("max_matches")),
-      #                  trees=int(self.settings.value("trees")),
-      #                  checks=int(self.settings.value("checks")),
-      #                  k=int(self.settings.value("k")),
-      #                  ratio=float(self.settings.value("ratio"))
-      #                  )
-      # # kp2, des2 = self.do_createDes(cvtImage)
-      # # 返回结果，模板、方向、画出匹配框的图像
-      # result, dir, imageDraw, angle, x, y = sift.match(self.temp_arr, cvtImage)
+            colorByteArray = bytearray(rgbBuff)
+            cvImage = numpy.array(colorByteArray).reshape(imageParams.height, imageParams.width, 3)
 
-      # 检测
-      surf = SurfBf(min_match_count=int(self.settings.value("min_match_count")),
-                       resize_times=float(self.settings.value("resize_times")),
-                       max_matches=int(self.settings.value("max_matches")),
-                       trees=int(self.settings.value("trees")),
-                       checks=int(self.settings.value("checks")),
-                       k=int(self.settings.value("k")),
-                       ratio=float(self.settings.value("ratio")),
-                       hist2=float(self.settings.value("hist2")), area=float(self.settings.value("area"))
-                       )
-      # kp2, des2 = self.do_createDes(cvtImage)
-      #
-      # # 直方图对比过滤模板
-      # if len(cvImage.shape) == 3:
-      #    resize_cvtImage = cv2.resize(cvtImage, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
-      #    height = resize_cvtImage.shape[0]
-      #    width = resize_cvtImage.shape[1]
-      #    resize_cvtImage = resize_cvtImage[int(height*0.4):int(height*0.6),int(width*0.4):int(width*0.6),:]
-      #    detect_temp_arr = []
-      #    for detect_temp in self.temp_arr:
-      #       resize_detect_temp = cv2.resize(detect_temp['image'], dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
-      #       match = hist_compare(resize_cvtImage, resize_detect_temp)
-      #       if match > float(self.settings.value('hist1')):
-      #          detect_temp_arr.append(detect_temp)
-      # else:
-      #    detect_temp_arr = self.temp_arr
-      #
-      # # 返回结果，模板、方向、画出匹配框的图像
-      # result, dir, imageDraw, angle, x, y = surf.match(detect_temp_arr, cvtImage)
-      result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage)
+         # 格式转换
+         if len(cvImage.shape) == 3:
+            cvtImage = cv2.cvtColor(cvImage, cv2.COLOR_BGR2RGB)
+         else:
+            cvtImage = cv2.cvtColor(cvImage, cv2.COLOR_GRAY2RGB)
 
-      # 左右反转再检测
-      if (angle > 0.2 and angle < numpy.pi/2-0.2) or (angle > -numpy.pi+0.2 and angle < -numpy.pi/2-0.2):
-         cvtImage_flip = cv2.flip(cvtImage, 1)
-         result, dir_useless, imageDraw_useless, angle_useless, x_useless, y_useless = surf.match(self.temp_arr, cvtImage_flip)
-
-      # 匹配结果不为空，则显示输入输出图像
-      if not result is None:
-         print("匹配结果:" + result["model"] + result["size"])
-         print("\n")
-         # 显示画出匹配框的图像
+         # 显示输入
          try:
-            qt_image = QtGui.QImage(imageDraw.data,
-                                    imageDraw.shape[1],
-                                    imageDraw.shape[0],
-                                    imageDraw.shape[1] * 3,
+            qt_image = QtGui.QImage(cvtImage.data,
+                                    cvtImage.shape[1],
+                                    cvtImage.shape[0],
+                                    cvtImage.shape[1] * 3,
                                     QtGui.QImage.Format.Format_RGB888)
 
-            w = imageDraw.shape[1]
-            h = imageDraw.shape[0]
-            W = self.ui.labInput.size().width()
-            H = self.ui.labInput.size().height()
+            w = cvtImage.shape[1]   # 图像宽度
+            h = cvtImage.shape[0]   # 图像高度
+            W = self.ui.labInput.size().width()    # 显示框的宽度
+            H = self.ui.labInput.size().height()   # 显示框的高度
 
+            # 自适应图像宽高
             if float(H) / h > float(W) / w:
                self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToWidth(W))
             else:
                self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
          except Exception as e:
             QMessageBox.warning(self, "警告", "图片输入出错")
-         # 显示输出图像
-         image = result["image"]
-         try:
-            qt_image = QtGui.QImage(image.data,
-                                    image.shape[1],
-                                    image.shape[0],
-                                    image.shape[1] * 3,
-                                    QtGui.QImage.Format.Format_RGB888)
 
-            w = image.shape[1]
-            h = image.shape[0]
-            W = self.ui.labOutput.size().width()
-            H = self.ui.labOutput.size().height()
+         # 清空输入图像和输出图像
+         self.ui.labOutput.clear()
+         self.ui.label_2.clear()
 
-            if float(H) / h > float(W) / w:
-               self.ui.labOutput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToWidth(W))
-            else:
-               self.ui.labOutput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
-         except Exception as e:
-            QMessageBox.warning(self, "警告", "图片输入出错")
+         # # 检测
+         # sift = SiftFlann(min_match_count=int(self.settings.value("min_match_count")),
+         #                  resize_times=float(self.settings.value("resize_times")),
+         #                  max_matches=int(self.settings.value("max_matches")),
+         #                  trees=int(self.settings.value("trees")),
+         #                  checks=int(self.settings.value("checks")),
+         #                  k=int(self.settings.value("k")),
+         #                  ratio=float(self.settings.value("ratio"))
+         #                  )
+         # # kp2, des2 = self.do_createDes(cvtImage)
+         # # 返回结果，模板、方向、画出匹配框的图像
+         # result, dir, imageDraw, angle, x, y = sift.match(self.temp_arr, cvtImage)
 
-         # 显示输出信息
-         label = self.ui.label_2
-         label.setStyleSheet('color: green')
-         s = "前" if dir==0 else "后"
-         label.setText("型号："+result["model"]+"；\t尺寸："+result["size"]+"；\t方向："+str(s))
-         # self.ui.label_2.setText("型号："+result["model"]+"；尺寸:"+result["size"]+"；方向："+angle)
-         # 写入csv
-         self.write_csv(result["model"], result["size"], result["color"], True, x, y, angle)
-         # 传输数据
-         if self.mythread:
-            string = result["model"]+";"+result["size"]+";"+result["color"]+";"+str(dir)+";"+str(x)+";"+str(y)+";"+str(angle)
-            self.mythread.send(string)
-         # 继电器输出
-         # if self.relay_flag:
-         #    self.relay_export_thread.export(result["port"], float(self.settings.value("delay_time")))
-            # export_relay(self.relay_dic, result["port"])
-         if (dir == 0 and result["forward"] == 1) or (dir == 1 and result["backward"] == 1):
-            if self.relay_flag:
-               if int(result["check"]) == 0:
-                  if result["port_index"] < len(result["port"]):
-                     while result["port"][result["port_index"]] > self.num and result["port_index"] < len(result["port"]):
-                        result["port_index"] = result["port_index"]+1
-                     if result["port_index"] < len(result["port"]):
-                        text = str(label.text()) + "；\t输出端口：" + str(result["port"][result["port_index"]])
-                        label.setText(text)
-                        self.relay_export_thread.export(result["port"][result["port_index"]], float(self.settings.value("delay_time")))
-                        result["port_index"] = result["port_index"]+1
-                     if result["port_index"] >= len(result["port"]):
-                        result["port_index"] = 0
+         # 检测
+         surf = SurfBf(min_match_count=int(self.settings.value("min_match_count")),
+                          resize_times=float(self.settings.value("resize_times")),
+                          max_matches=int(self.settings.value("max_matches")),
+                          trees=int(self.settings.value("trees")),
+                          checks=int(self.settings.value("checks")),
+                          k=int(self.settings.value("k")),
+                          ratio=float(self.settings.value("ratio")),
+                          hist2=float(self.settings.value("hist2")), area=float(self.settings.value("area"))
+                          )
+         # kp2, des2 = self.do_createDes(cvtImage)
+         #
+         # # 直方图对比过滤模板
+         # if len(cvImage.shape) == 3:
+         #    resize_cvtImage = cv2.resize(cvtImage, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+         #    height = resize_cvtImage.shape[0]
+         #    width = resize_cvtImage.shape[1]
+         #    resize_cvtImage = resize_cvtImage[int(height*0.4):int(height*0.6),int(width*0.4):int(width*0.6),:]
+         #    detect_temp_arr = []
+         #    for detect_temp in self.temp_arr:
+         #       resize_detect_temp = cv2.resize(detect_temp['image'], dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+         #       match = hist_compare(resize_cvtImage, resize_detect_temp)
+         #       if match > float(self.settings.value('hist1')):
+         #          detect_temp_arr.append(detect_temp)
+         # else:
+         #    detect_temp_arr = self.temp_arr
+         #
+         # # 返回结果，模板、方向、画出匹配框的图像
+         # result, dir, imageDraw, angle, x, y = surf.match(detect_temp_arr, cvtImage)
+         result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage)
+
+         # # 左右反转再检测,似乎有一点效果
+         # if (angle > 0.2 and angle < numpy.pi/2-0.2) or (angle > -numpy.pi+0.2 and angle < -numpy.pi/2-0.2):
+         #    cvtImage_flip = cv2.flip(cvtImage, 1)
+         #    result, dir_useless, imageDraw_useless, angle_useless, x_useless, y_useless = surf.match(self.temp_arr, cvtImage_flip)
+
+         # 匹配结果不为空，则显示输入输出图像
+         if not result is None:
+            print("匹配结果:" + result["model"] + result["size"])
+            print("\n")
+            # 显示画出匹配框的图像
+            try:
+               qt_image = QtGui.QImage(imageDraw.data,
+                                       imageDraw.shape[1],
+                                       imageDraw.shape[0],
+                                       imageDraw.shape[1] * 3,
+                                       QtGui.QImage.Format.Format_RGB888)
+
+               w = imageDraw.shape[1]
+               h = imageDraw.shape[0]
+               W = self.ui.labInput.size().width()
+               H = self.ui.labInput.size().height()
+
+               if float(H) / h > float(W) / w:
+                  self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToWidth(W))
                else:
-                  self.relay_export_thread.export_arr(result["port"], float(self.settings.value("delay_time")))
+                  self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
+            except Exception as e:
+               QMessageBox.warning(self, "警告", "图片输入出错")
+            # 显示输出图像
+            image = result["image"]
+            try:
+               qt_image = QtGui.QImage(image.data,
+                                       image.shape[1],
+                                       image.shape[0],
+                                       image.shape[1] * 3,
+                                       QtGui.QImage.Format.Format_RGB888)
 
-      else:
-         label = self.ui.label_2
-         label.setStyleSheet('color: red')
-         self.ui.label_2.setText("无匹配结果")
-         # 写入csv
-         self.write_csv("", "", "", False, 0, 0, 0)
-         # 传输数据
-         if self.mythread:
-            string = ";" + ";" + ";" + str(-1) + ";" + str(0) + ";" + str(0) + ";" + str(0)
-            self.mythread.send(string)
-         # # 继电器输出
-         # if self.relay_flag:
-         #    self.relay_export_thread.export(self.num, float(self.settings.value("delay_time")))
-            # export_relay(self.relay_dic, self.num)
-      gc.collect()
+               w = image.shape[1]
+               h = image.shape[0]
+               W = self.ui.labOutput.size().width()
+               H = self.ui.labOutput.size().height()
+
+               if float(H) / h > float(W) / w:
+                  self.ui.labOutput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToWidth(W))
+               else:
+                  self.ui.labOutput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
+            except Exception as e:
+               QMessageBox.warning(self, "警告", "图片输入出错")
+
+            # 显示输出信息
+            label = self.ui.label_2
+            label.setStyleSheet('color: green')
+            s = "前" if dir==0 else "后"
+            label.setText("型号："+result["model"]+"；\t尺寸："+result["size"]+"；\t方向："+str(s))
+            # self.ui.label_2.setText("型号："+result["model"]+"；尺寸:"+result["size"]+"；方向："+angle)
+            # 写入csv
+            self.write_csv(result["model"], result["size"], result["color"], True, x, y, angle)
+            # 传输数据
+            if self.mythread:
+               string = result["model"]+";"+result["size"]+";"+result["color"]+";"+str(dir)+";"+str(x)+";"+str(y)+";"+str(angle)
+               self.mythread.send(string)
+            # 继电器输出
+            # if self.relay_flag:
+            #    self.relay_export_thread.export(result["port"], float(self.settings.value("delay_time")))
+               # export_relay(self.relay_dic, result["port"])
+            if (dir == 0 and result["forward"] == 1) or (dir == 1 and result["backward"] == 1):
+               if self.relay_flag:
+                  # 是否忽略颜色
+                  if self.ignore_flag:
+                     if int(result["check"]) == 0:
+                        name = result["model"]+result["size"]
+                        if self.temp_arr_ignore_index[name] < len(self.temp_arr_ignore[name]):
+                           while self.temp_arr_ignore[name][self.temp_arr_ignore_index[name]] > self.num and self.temp_arr_ignore_index[name] < len(self.temp_arr_ignore[name]):
+                              self.temp_arr_ignore_index[name] = self.temp_arr_ignore_index[name]+1
+                           if self.temp_arr_ignore_index[name] < len(self.temp_arr_ignore[name]):
+                              text = str(label.text()) + "；\t输出端口：" + str(self.temp_arr_ignore[name][self.temp_arr_ignore_index[name]])
+                              label.setText(text)
+                              self.relay_export_thread.export(self.temp_arr_ignore[name][self.temp_arr_ignore_index[name]], float(self.settings.value("delay_time")))
+                              self.temp_arr_ignore_index[name] = self.temp_arr_ignore_index[name]+1
+                           if self.temp_arr_ignore_index[name] >= len(self.temp_arr_ignore[name]):
+                              self.temp_arr_ignore_index[name] = 0
+                     else:
+                        self.relay_export_thread.export_arr(self.temp_arr_ignore[result["model"]+result["size"]], float(self.settings.value("delay_time")))
+                  else:
+                     # 判断是否多端口同时输出
+                     if int(result["check"]) == 0:
+                        if result["port_index"] < len(result["port"]):
+                           while result["port"][result["port_index"]] > self.num and result["port_index"] < len(result["port"]):
+                              result["port_index"] = result["port_index"]+1
+                           if result["port_index"] < len(result["port"]):
+                              text = str(label.text()) + "；\t输出端口：" + str(result["port"][result["port_index"]])
+                              label.setText(text)
+                              self.relay_export_thread.export(result["port"][result["port_index"]], float(self.settings.value("delay_time")))
+                              result["port_index"] = result["port_index"]+1
+                           if result["port_index"] >= len(result["port"]):
+                              result["port_index"] = 0
+                     else:
+                        self.relay_export_thread.export_arr(result["port"], float(self.settings.value("delay_time")))
+
+         else:
+            label = self.ui.label_2
+            label.setStyleSheet('color: red')
+            self.ui.label_2.setText("无匹配结果")
+            # 写入csv
+            self.write_csv("", "", "", False, 0, 0, 0)
+            # 传输数据
+            if self.mythread:
+               string = ";" + ";" + ";" + str(-1) + ";" + str(0) + ";" + str(0) + ";" + str(0)
+               self.mythread.send(string)
+            # # 继电器输出
+            # if self.relay_flag:
+            #    self.relay_export_thread.export(self.num, float(self.settings.value("delay_time")))
+               # export_relay(self.relay_dic, self.num)
+         gc.collect()
 
 
    # 测试相机
@@ -972,6 +990,18 @@ class QmyWidget(QWidget):
       return temp_arr
 
 
+   def do_ignore_temp_arr(self):
+      for t in self.temp_arr:
+         if t["model"]+t["size"] in self.temp_arr_ignore:
+            self.temp_arr_ignore[t["model"]+t["size"]] = list(set(self.temp_arr_ignore[t["model"]+t["size"]]) | set(t["port"]))
+         else:
+            self.temp_arr_ignore[t["model"]+t["size"]] = t["port"]
+         self.temp_arr_ignore_index[t["model"]+t["size"]] = 0
+      print(self.temp_arr_ignore)
+      print(self.temp_arr_ignore_index)
+
+
+
    def do_TCPLink(self, a):
       label = self.ui.labTCP
       label.setStyleSheet('color: green')
@@ -983,6 +1013,15 @@ class QmyWidget(QWidget):
    def do_testRelay_finish(self):
       self.ui.btnCloseRelay.setEnabled(True)
       self.ui.btnTestRelay.setEnabled(True)
+
+
+   def do_interval_set_true(self):
+      self.interval_flag = True
+      # 设置一个定时器，单次触发
+      self.timer = QTimer()
+      self.timer.timeout.connect(self.do_interval_set_false)
+      self.timer.setSingleShot(True)
+      self.timer.start(int(self.settings.value('interval_time')) * 1000)
 
 
    def do_interval_set_false(self):
@@ -1238,16 +1277,19 @@ class QmyWidget(QWidget):
       while not select_flag:
          dialogSelectTemp = QmyDialogSelectTemp()
          dialogSelectTemp.set_temp(self.select_temp, self.num)
+         dialogSelectTemp.set_ignore_flag(self.ignore_flag)
          dialogSelectTemp.do_showSelectTemp()
          ret = dialogSelectTemp.exec()
          # 根据选择的模板生成数组
          if ret:
             self.select_temp = dialogSelectTemp.get_temp()
+            self.ignore_flag = dialogSelectTemp.get_ignore_flag()
             # print(len(self.select_temp))
             temp_arr = self.do_selectTempArr()
             # 判断端口参数设置是否出错，出错重新设置
             if not temp_arr is None:
                self.temp_arr = temp_arr
+               self.do_ignore_temp_arr()
                print("选择了"+str(len(self.temp_arr))+"模板")
                for t in self.select_temp:
                   print(t["model"]+"的输出端口号："+str(t["port"]))

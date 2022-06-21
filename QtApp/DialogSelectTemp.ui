@@ -240,6 +240,19 @@
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_9">
                <item>
+                <widget class="QCheckBox" name="checkBoxIgnoreColor">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>检测时同型号忽略颜色</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
                 <widget class="QPushButton" name="btnSelect">
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Minimum" vsizetype="Expanding">

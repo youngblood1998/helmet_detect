@@ -98,7 +98,33 @@ class Relaythread(QThread):
          return
 
 
+# # 触发间隔的线程
+# class Interval_thread(QThread):
+#
+#    def __init__(self):
+#       super(Interval_thread, self).__init__()
+#
+#    def __del__(self):
+#       try:
+#          self.wait()
+#       except:
+#          pass
+#
+#    def run(self):
+#       try:
+#          self.wait()
+#       except:
+#          return
+#
+#    def sleep(self, t, func):
+#       self.timer = QTimer()
+#       self.timer.timeout.connect(func)
+#       self.timer.setSingleShot(True)
+#       self.timer.start(t * 1000)
+
+
 class QmyWidget(QWidget):
+   interval_signal = pyqtSignal(int)
 
    def __init__(self, parent=None):
       super().__init__(parent)  # 调用父类构造函数，创建窗体
@@ -109,6 +135,7 @@ class QmyWidget(QWidget):
       self.detect_flag = False   # 检测开关标志
       self.tcp_flag = False      # TCP连接标志
       self.relay_flag = False    # 继电器连接标志
+      self.interval_flag = False
 
       # 将一部分按钮设置成非使能状态
       self.ui.btnLinkCamera.setEnabled(False)
@@ -143,10 +170,10 @@ class QmyWidget(QWidget):
       self.select_temp = []   # 选择的模板
       self.temp_arr = []   # 选择的模板(包含关键点和描述子)
       self.mythread = None
+      # self.interval_thread = Interval_thread()
+      # self.interval_thread.start()
+      self.interval_signal.connect(self.do_interval_set_true)
       self.num = 0
-      self.timer = QTimer()
-      self.timer.timeout.connect(self.do_time)
-      self.timer.setSingleShot(True)
 
       # 有无默认配置文件，没有的话创建并设置默认参数
       if not os.path.exists('./defaultConfig.ini'):
@@ -168,6 +195,19 @@ class QmyWidget(QWidget):
 
 
 ##  ==============自定义功能函数========================
+   def do_interval_set_true(self):
+      self.interval_flag = True
+      self.timer = QTimer()
+      self.timer.timeout.connect(self.do_interval_set_false)
+      self.timer.setSingleShot(True)
+      self.timer.start(5 * 1000)
+
+
+   def do_interval_set_false(self):
+      self.interval_flag = False
+      print(2)
+
+
    # 输出csv文件
    def write_csv(self, model, size, color, ok, x, y, angle):
       if not os.path.exists("../records"):
@@ -862,6 +902,7 @@ class QmyWidget(QWidget):
 
 
    def do_time(self):
+      self.interval_flag = False
       print(2)
 
 ##  ==============event处理函数==========================
@@ -1157,22 +1198,23 @@ class QmyWidget(QWidget):
    # 开始检测
    @pyqtSlot()
    def on_btnStartDetect_clicked(self):
-      self.timer.start(5*1000)
-      print(1)
-      # 没有模板则提示
-      if len(self.select_temp) == 0:
-         QMessageBox.warning(self, "警告", "请选择模板")
-         return
-      # 按钮
-      self.ui.btnStartDetect.setEnabled(False)
-      self.ui.btnStopDetect.setEnabled(True)
-      self.ui.btnSetParams.setEnabled(False)
-      self.ui.btnSelectTemp.setEnabled(False)
-      self.ui.btnMakeTemp.setEnabled(False)
-      self.ui.btnTestCamera.setEnabled(False)
-      # 检测并设置标志
-      self.do_detect()
-      self.detect_flag = True
+      if not self.interval_flag:
+         self.interval_signal.emit(1)
+         print(1)
+         # 没有模板则提示
+         if len(self.select_temp) == 0:
+            QMessageBox.warning(self, "警告", "请选择模板")
+            return
+         # 按钮
+         self.ui.btnStartDetect.setEnabled(False)
+         self.ui.btnStopDetect.setEnabled(True)
+         self.ui.btnSetParams.setEnabled(False)
+         self.ui.btnSelectTemp.setEnabled(False)
+         self.ui.btnMakeTemp.setEnabled(False)
+         self.ui.btnTestCamera.setEnabled(False)
+         # 检测并设置标志
+         self.do_detect()
+         self.detect_flag = True
 
 
    # 停止检测

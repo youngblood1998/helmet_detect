@@ -46,6 +46,20 @@ class QmyDialogSelectTemp(QDialog):
 
 
 ##  ============自定义功能函数========================
+   def set_ignore_flag(self, flag):
+      if flag:
+         self.ui.checkBoxIgnoreColor.setCheckState(Qt.Checked)
+      else:
+         self.ui.checkBoxIgnoreColor.setCheckState(Qt.Unchecked)
+
+
+   def get_ignore_flag(self):
+      if self.ui.checkBoxIgnoreColor.checkState() == Qt.Checked:
+         return True
+      else:
+         return False
+
+
    # 已选择的模板
    def set_temp(self, select_temp, num):
       self.selectedTemp = copy.deepcopy(select_temp)
