@@ -201,8 +201,8 @@ class QmyWidget(QWidget):
 
       self.select_temp = []   # 选择的模板
       self.temp_arr = []   # 选择的模板(包含关键点和描述子)
-      self.temp_arr_ignore = {}  # 忽略颜色时的模板数组
-      self.temp_arr_ignore_index = {}
+      # self.temp_arr_ignore = {}  # 忽略颜色时的模板数组
+      # self.temp_arr_ignore_index = {}
       self.mythread = None
       # self.interval_thread = None
       self.interval_signal.connect(self.do_interval_set_true)
@@ -420,12 +420,12 @@ class QmyWidget(QWidget):
          #
          # # 返回结果，模板、方向、画出匹配框的图像
          # result, dir, imageDraw, angle, x, y = surf.match(detect_temp_arr, cvtImage)
-         result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage)
+         result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage, self.ignore_flag)
 
          # # 左右反转再检测,似乎有一点效果
          # if (angle > 0.2 and angle < numpy.pi/2-0.2) or (angle > -numpy.pi+0.2 and angle < -numpy.pi/2-0.2):
          #    cvtImage_flip = cv2.flip(cvtImage, 1)
-         #    result, dir_useless, imageDraw_useless, angle_useless, x_useless, y_useless = surf.match(self.temp_arr, cvtImage_flip)
+         #    result, dir_useless, imageDraw_useless, angle_useless, x_useless, y_useless = surf.match(self.temp_arr, cvtImage_flip, self.ignore_flag)
 
          # 匹配结果不为空，则显示输入输出图像
          if not result is None:
@@ -489,38 +489,53 @@ class QmyWidget(QWidget):
                # export_relay(self.relay_dic, result["port"])
             if (dir == 0 and result["forward"] == 1) or (dir == 1 and result["backward"] == 1):
                if self.relay_flag:
-                  # 是否忽略颜色
-                  if self.ignore_flag:
-                     if int(result["check"]) == 0:
-                        name = result["model"]+result["size"]
-                        if self.temp_arr_ignore_index[name] < len(self.temp_arr_ignore[name]):
-                           while self.temp_arr_ignore[name][self.temp_arr_ignore_index[name]] > self.num and self.temp_arr_ignore_index[name] < len(self.temp_arr_ignore[name]):
-                              self.temp_arr_ignore_index[name] = self.temp_arr_ignore_index[name]+1
-                           if self.temp_arr_ignore_index[name] < len(self.temp_arr_ignore[name]):
-                              text = str(label.text()) + "；\t输出端口：" + str(self.temp_arr_ignore[name][self.temp_arr_ignore_index[name]])
-                              label.setText(text)
-                              self.relay_export_thread.export(self.temp_arr_ignore[name][self.temp_arr_ignore_index[name]], float(self.settings.value("delay_time")))
-                              self.temp_arr_ignore_index[name] = self.temp_arr_ignore_index[name]+1
-                           if self.temp_arr_ignore_index[name] >= len(self.temp_arr_ignore[name]):
-                              self.temp_arr_ignore_index[name] = 0
-                     else:
-                        self.relay_export_thread.export_arr(self.temp_arr_ignore[result["model"]+result["size"]], float(self.settings.value("delay_time")))
-                  else:
-                     # 判断是否多端口同时输出
-                     if int(result["check"]) == 0:
+                  # 判断是否多端口同时输出
+                  if int(result["check"]) == 0:
+                     if result["port_index"] < len(result["port"]):
+                        while result["port"][result["port_index"]] > self.num and result["port_index"] < len(
+                              result["port"]):
+                           result["port_index"] = result["port_index"] + 1
                         if result["port_index"] < len(result["port"]):
-                           while result["port"][result["port_index"]] > self.num and result["port_index"] < len(result["port"]):
-                              result["port_index"] = result["port_index"]+1
-                           if result["port_index"] < len(result["port"]):
-                              text = str(label.text()) + "；\t输出端口：" + str(result["port"][result["port_index"]])
-                              label.setText(text)
-                              self.relay_export_thread.export(result["port"][result["port_index"]], float(self.settings.value("delay_time")))
-                              result["port_index"] = result["port_index"]+1
-                           if result["port_index"] >= len(result["port"]):
-                              result["port_index"] = 0
-                     else:
-                        self.relay_export_thread.export_arr(result["port"], float(self.settings.value("delay_time")))
-
+                           text = str(label.text()) + "；\t输出端口：" + str(result["port"][result["port_index"]])
+                           label.setText(text)
+                           self.relay_export_thread.export(result["port"][result["port_index"]],
+                                                           float(self.settings.value("delay_time")))
+                           result["port_index"] = result["port_index"] + 1
+                        if result["port_index"] >= len(result["port"]):
+                           result["port_index"] = 0
+                  else:
+                     self.relay_export_thread.export_arr(result["port"], float(self.settings.value("delay_time")))
+                  # # 是否忽略颜色
+                  # if self.ignore_flag:
+                  #    if int(result["check"]) == 0:
+                  #       name = result["model"]+result["size"]
+                  #       if self.temp_arr_ignore_index[name] < len(self.temp_arr_ignore[name]):
+                  #          while self.temp_arr_ignore[name][self.temp_arr_ignore_index[name]] > self.num and self.temp_arr_ignore_index[name] < len(self.temp_arr_ignore[name]):
+                  #             self.temp_arr_ignore_index[name] = self.temp_arr_ignore_index[name]+1
+                  #          if self.temp_arr_ignore_index[name] < len(self.temp_arr_ignore[name]):
+                  #             text = str(label.text()) + "；\t输出端口：" + str(self.temp_arr_ignore[name][self.temp_arr_ignore_index[name]])
+                  #             label.setText(text)
+                  #             self.relay_export_thread.export(self.temp_arr_ignore[name][self.temp_arr_ignore_index[name]], float(self.settings.value("delay_time")))
+                  #             self.temp_arr_ignore_index[name] = self.temp_arr_ignore_index[name]+1
+                  #          if self.temp_arr_ignore_index[name] >= len(self.temp_arr_ignore[name]):
+                  #             self.temp_arr_ignore_index[name] = 0
+                  #    else:
+                  #       self.relay_export_thread.export_arr(self.temp_arr_ignore[result["model"]+result["size"]], float(self.settings.value("delay_time")))
+                  # else:
+                  #    # 判断是否多端口同时输出
+                  #    if int(result["check"]) == 0:
+                  #       if result["port_index"] < len(result["port"]):
+                  #          while result["port"][result["port_index"]] > self.num and result["port_index"] < len(result["port"]):
+                  #             result["port_index"] = result["port_index"]+1
+                  #          if result["port_index"] < len(result["port"]):
+                  #             text = str(label.text()) + "；\t输出端口：" + str(result["port"][result["port_index"]])
+                  #             label.setText(text)
+                  #             self.relay_export_thread.export(result["port"][result["port_index"]], float(self.settings.value("delay_time")))
+                  #             result["port_index"] = result["port_index"]+1
+                  #          if result["port_index"] >= len(result["port"]):
+                  #             result["port_index"] = 0
+                  #    else:
+                  #       self.relay_export_thread.export_arr(result["port"], float(self.settings.value("delay_time")))
          else:
             label = self.ui.label_2
             label.setStyleSheet('color: red')
@@ -885,8 +900,9 @@ class QmyWidget(QWidget):
       cursor = conn.cursor()
 
       # 执行插入
-      sql = 'INSERT into helmet values (?,?,?,?,?,?,?)'
-      x = [model, size, color, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), image.shape[1], image.shape[0],
+      sql = 'INSERT into helmet values (?,?,?,?,?,?,?,?)'
+      exposure_time = int(self.settings.value('exposure_time'))
+      x = [model, size, color, exposure_time, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), image.shape[1], image.shape[0],
            image.tobytes()]
       cursor.execute(sql, x)
       conn.commit()
@@ -990,16 +1006,15 @@ class QmyWidget(QWidget):
       return temp_arr
 
 
-   def do_ignore_temp_arr(self):
-      for t in self.temp_arr:
-         if t["model"]+t["size"] in self.temp_arr_ignore:
-            self.temp_arr_ignore[t["model"]+t["size"]] = list(set(self.temp_arr_ignore[t["model"]+t["size"]]) | set(t["port"]))
-         else:
-            self.temp_arr_ignore[t["model"]+t["size"]] = t["port"]
-         self.temp_arr_ignore_index[t["model"]+t["size"]] = 0
-      print(self.temp_arr_ignore)
-      print(self.temp_arr_ignore_index)
-
+   # def do_ignore_temp_arr(self):
+   #    for t in self.temp_arr:
+   #       if t["model"]+t["size"] in self.temp_arr_ignore:
+   #          self.temp_arr_ignore[t["model"]+t["size"]] = list(set(self.temp_arr_ignore[t["model"]+t["size"]]) | set(t["port"]))
+   #       else:
+   #          self.temp_arr_ignore[t["model"]+t["size"]] = t["port"]
+   #       self.temp_arr_ignore_index[t["model"]+t["size"]] = 0
+   #    print(self.temp_arr_ignore)
+   #    print(self.temp_arr_ignore_index)
 
 
    def do_TCPLink(self, a):
@@ -1276,6 +1291,7 @@ class QmyWidget(QWidget):
       select_flag = False
       while not select_flag:
          dialogSelectTemp = QmyDialogSelectTemp()
+
          dialogSelectTemp.set_temp(self.select_temp, self.num)
          dialogSelectTemp.set_ignore_flag(self.ignore_flag)
          dialogSelectTemp.do_showSelectTemp()
@@ -1289,7 +1305,7 @@ class QmyWidget(QWidget):
             # 判断端口参数设置是否出错，出错重新设置
             if not temp_arr is None:
                self.temp_arr = temp_arr
-               self.do_ignore_temp_arr()
+               # self.do_ignore_temp_arr()
                print("选择了"+str(len(self.temp_arr))+"模板")
                for t in self.select_temp:
                   print(t["model"]+"的输出端口号："+str(t["port"]))

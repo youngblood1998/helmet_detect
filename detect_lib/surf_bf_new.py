@@ -22,7 +22,7 @@ class SurfBf:
         self.area = area    # 面积匹配度
 
 
-    def surf_bf(self, im1, kp1, des1, im2):
+    def surf_bf(self, im1, kp1, des1, im2, ignore_flag):
         # # 大小变换
         # im1 = cv2.resize(im1, dsize=None, fx=self.resize_times, fy=self.resize_times, interpolation=cv2.INTER_LINEAR)
         # im2 = cv2.resize(im2, dsize=None, fx=self.resize_times, fy=self.resize_times, interpolation=cv2.INTER_LINEAR)
@@ -118,12 +118,13 @@ class SurfBf:
             #     print(max(min_y, max_y)-min(min_y, max_y), max(min_x, max_x)-min(min_x, max_x))
             #     return 0, [], None
             # resize_im2 = cv2.resize(im2[y_1:y_2, x_1:x_2, :], dsize=None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
-            resize_im2 = cv2.resize(im2[int(im2_h/3):int(im2_h*2/3), int(im2_w/3):int(im2_w*2/3), :], dsize=None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
-            resize_im1 = cv2.resize(im1, dsize=None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
-            # print(hist_compare(resize_im2, resize_im1))
-            if hist_compare(resize_im2, resize_im1) < self.hist2:
-                print("颜色不匹配："+str(hist_compare(resize_im2, resize_im1)))
-                return 0, [], None
+            if not ignore_flag:
+                resize_im2 = cv2.resize(im2[int(im2_h/3):int(im2_h*2/3), int(im2_w/3):int(im2_w*2/3), :], dsize=None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
+                resize_im1 = cv2.resize(im1, dsize=None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
+                # print(hist_compare(resize_im2, resize_im1))
+                if hist_compare(resize_im2, resize_im1) < self.hist2:
+                    print("颜色不匹配："+str(hist_compare(resize_im2, resize_im1)))
+                    return 0, [], None
         else:
             print("对应点太少："+str(len(good)))
             # 匹配上的点太少
@@ -135,7 +136,7 @@ class SurfBf:
         return len(good), dst, M
 
 
-    def match(self, temp_arr, im2):
+    def match(self, temp_arr, im2, ignore_flag):
         # 最多的匹配点个数
         # max_matches = 0
         min_area_ratio = 1
@@ -159,7 +160,7 @@ class SurfBf:
             # im1_width = np.shape(im1)[1]
             # area1 = im1_width * im1_height
             # 匹配点个数、框的四个点、变换矩阵
-            matches, dst, matrix = self.surf_bf(im1, temp["kp"], temp["des"], im2)
+            matches, dst, matrix = self.surf_bf(im1, temp["kp"], temp["des"], im2, ignore_flag)
             # print(dst)
             # 匹配点太少的话直接跳过
             if len(dst) == 0:

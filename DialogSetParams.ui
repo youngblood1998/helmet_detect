@@ -195,7 +195,7 @@
          </font>
         </property>
         <property name="text">
-         <string>tree</string>
+         <string>树的个数</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -217,7 +217,7 @@
          </font>
         </property>
         <property name="text">
-         <string>checks</string>
+         <string>树遍历的次数</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -239,7 +239,7 @@
          </font>
         </property>
         <property name="text">
-         <string>ratio</string>
+         <string>特征点匹配比率</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -264,7 +264,7 @@
          </font>
         </property>
         <property name="text">
-         <string>k</string>
+         <string>k近邻搜索个数</string>
         </property>
         <property name="textFormat">
          <enum>Qt::AutoText</enum>
@@ -529,7 +529,7 @@
          </font>
         </property>
         <property name="text">
-         <string>最短触发间隔时间(s)</string>
+         <string>触发器触发间隔时间(s)</string>
         </property>
        </widget>
       </item>

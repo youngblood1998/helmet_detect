@@ -103,6 +103,7 @@ class QmyDialogSelectTemp(QDialog):
       self.tableModel.setHeaderData(self.fldNum["model"], Qt.Horizontal, "型号")
       self.tableModel.setHeaderData(self.fldNum["size"], Qt.Horizontal, "尺寸")
       self.tableModel.setHeaderData(self.fldNum["color"], Qt.Horizontal, "颜色")
+      self.tableModel.setHeaderData(self.fldNum["exposure_time"], Qt.Horizontal, "曝光时间(μs)")
       self.tableModel.setHeaderData(self.fldNum["date"], Qt.Horizontal, "日期")
       self.tableModel.setHeaderData(self.fldNum["width"], Qt.Horizontal, "图片宽")
       self.tableModel.setHeaderData(self.fldNum["height"], Qt.Horizontal, "图片高")

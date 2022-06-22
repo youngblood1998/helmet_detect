@@ -1009,13 +1009,13 @@ class QmyWidget(QWidget):
          #
          # # 返回结果，模板、方向、画出匹配框的图像
          # result, dir, imageDraw, angle, x, y = surf.match(detect_temp_arr, cvtImage)
-         result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage)
+         result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage, True)
 
-         # 左右反转再检测
-         if (angle > 0.2 and angle < numpy.pi / 2 - 0.2) or (angle > -numpy.pi + 0.2 and angle < -numpy.pi / 2 - 0.2):
-            cvtImage_flip = cv2.flip(cvtImage, 1)
-            result, dir_useless, imageDraw_useless, angle_useless, x_useless, y_useless = surf.match(self.temp_arr,
-                                                                                                     cvtImage_flip)
+         # # 左右反转再检测
+         # if (angle > 0.2 and angle < numpy.pi / 2 - 0.2) or (angle > -numpy.pi + 0.2 and angle < -numpy.pi / 2 - 0.2):
+         #    cvtImage_flip = cv2.flip(cvtImage, 1)
+         #    result, dir_useless, imageDraw_useless, angle_useless, x_useless, y_useless = surf.match(self.temp_arr,
+         #                                                                                             cvtImage_flip)
 
          # 匹配结果不为空，则显示输入输出图像
          if not result is None:
