@@ -200,7 +200,7 @@ class QmyWidget(QWidget):
       self.timer = QTimer()
       self.timer.timeout.connect(self.do_interval_set_false)
       self.timer.setSingleShot(True)
-      self.timer.start(5 * 1000)
+      self.timer.start(3 * 1000)
 
 
    def do_interval_set_false(self):

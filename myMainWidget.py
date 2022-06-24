@@ -300,52 +300,55 @@ class QmyWidget(QWidget):
 
    # 回调函数，用于检测
    def test_callback(self, frame, userInfo):
-      # 判断是否在间隔时间内，是则不执行检测
-      if not self.interval_flag:
-         self.interval_signal.emit(1)
-         # self.interval_thread.sleep(int(self.settings.value('interval_time')))
+      # self.interval_thread.sleep(int(self.settings.value('interval_time')))
 
-         nRet = frame.contents.valid(frame)
-         if (nRet != 0):
-            print("frame is invalid!")
-            # 释放驱动图像缓存资源
-            frame.contents.release(frame)
-            return -1
-
-         print("BlockId = %d userInfo = %s" % (frame.contents.getBlockId(frame), c_char_p(userInfo).value))
-
-         imageParams = IMGCNV_SOpenParam()
-         imageParams.dataSize = frame.contents.getImageSize(frame)
-         imageParams.height = frame.contents.getImageHeight(frame)
-         imageParams.width = frame.contents.getImageWidth(frame)
-         imageParams.paddingX = frame.contents.getImagePaddingX(frame)
-         imageParams.paddingY = frame.contents.getImagePaddingY(frame)
-         imageParams.pixelForamt = frame.contents.getImagePixelFormat(frame)
-
-         # 将裸数据图像拷出
-         imageBuff = frame.contents.getImage(frame)
-         userBuff = c_buffer(b'\0', imageParams.dataSize)
-         memmove(userBuff, c_char_p(imageBuff), imageParams.dataSize)
-
+      nRet = frame.contents.valid(frame)
+      if (nRet != 0):
+         print("frame is invalid!")
          # 释放驱动图像缓存资源
          frame.contents.release(frame)
+         return -1
 
-         # 如果图像格式是 Mono8 直接使用
-         if imageParams.pixelForamt == EPixelType.gvspPixelMono8:
-            grayByteArray = bytearray(userBuff)
-            cvImage = numpy.array(grayByteArray).reshape(imageParams.height, imageParams.width)
-         else:
-            # 转码 => BGR24
-            rgbSize = c_int()
-            rgbBuff = c_buffer(b'\0', imageParams.height * imageParams.width * 3)
+      print("BlockId = %d userInfo = %s" % (frame.contents.getBlockId(frame), c_char_p(userInfo).value))
 
-            nRet = IMGCNV_ConvertToBGR24(cast(userBuff, c_void_p), \
-                                         byref(imageParams), \
-                                         cast(rgbBuff, c_void_p), \
-                                         byref(rgbSize))
+      imageParams = IMGCNV_SOpenParam()
+      imageParams.dataSize = frame.contents.getImageSize(frame)
+      imageParams.height = frame.contents.getImageHeight(frame)
+      imageParams.width = frame.contents.getImageWidth(frame)
+      imageParams.paddingX = frame.contents.getImagePaddingX(frame)
+      imageParams.paddingY = frame.contents.getImagePaddingY(frame)
+      imageParams.pixelForamt = frame.contents.getImagePixelFormat(frame)
 
-            colorByteArray = bytearray(rgbBuff)
-            cvImage = numpy.array(colorByteArray).reshape(imageParams.height, imageParams.width, 3)
+      # 将裸数据图像拷出
+      imageBuff = frame.contents.getImage(frame)
+      userBuff = c_buffer(b'\0', imageParams.dataSize)
+      memmove(userBuff, c_char_p(imageBuff), imageParams.dataSize)
+
+      # 释放驱动图像缓存资源
+      frame.contents.release(frame)
+
+      # 如果图像格式是 Mono8 直接使用
+      if imageParams.pixelForamt == EPixelType.gvspPixelMono8:
+         grayByteArray = bytearray(userBuff)
+         cvImage = numpy.array(grayByteArray).reshape(imageParams.height, imageParams.width)
+      else:
+         # 转码 => BGR24
+         rgbSize = c_int()
+         rgbBuff = c_buffer(b'\0', imageParams.height * imageParams.width * 3)
+
+         nRet = IMGCNV_ConvertToBGR24(cast(userBuff, c_void_p), \
+                                      byref(imageParams), \
+                                      cast(rgbBuff, c_void_p), \
+                                      byref(rgbSize))
+
+         colorByteArray = bytearray(rgbBuff)
+         cvImage = numpy.array(colorByteArray).reshape(imageParams.height, imageParams.width, 3)
+
+      print("触发传感器")
+      # 判断是否在间隔时间内，是则不执行检测
+      if not self.interval_flag:
+         print("进行检测")
+         self.interval_signal.emit(1)
 
          # 格式转换
          if len(cvImage.shape) == 3:
