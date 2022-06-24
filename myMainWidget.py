@@ -507,6 +507,8 @@ class QmyWidget(QWidget):
                         if result["port_index"] >= len(result["port"]):
                            result["port_index"] = 0
                   else:
+                     text = str(label.text()) + "；\t输出端口：" + str(result["port"])
+                     label.setText(text)
                      self.relay_export_thread.export_arr(result["port"], float(self.settings.value("delay_time")))
                   # # 是否忽略颜色
                   # if self.ignore_flag:
