@@ -251,7 +251,7 @@
                   </sizepolicy>
                  </property>
                  <property name="text">
-                  <string>检测时同型号忽略颜色</string>
+                  <string>检测时同型号同大小忽略颜色</string>
                  </property>
                 </widget>
                </item>

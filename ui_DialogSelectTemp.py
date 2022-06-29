@@ -246,7 +246,7 @@ class Ui_Dialog(object):
         self.btnRevert.setText(_translate("Dialog", "取消修改"))
         self.btnDelete.setText(_translate("Dialog", "删除"))
         self.grpSelectTemp.setTitle(_translate("Dialog", "已选择的模板"))
-        self.checkBoxIgnoreColor.setText(_translate("Dialog", "检测时同型号忽略颜色"))
+        self.checkBoxIgnoreColor.setText(_translate("Dialog", "检测时同型号同大小忽略颜色"))
         self.btnSelect.setText(_translate("Dialog", "选择模板"))
         self.btnRemove.setText(_translate("Dialog", "移除所选模板"))
         self.btnClear.setText(_translate("Dialog", "清空所有已选模板"))
