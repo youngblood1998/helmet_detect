@@ -932,7 +932,7 @@ class QmyWidget(QWidget):
    def on_btnDetectCamera_clicked(self):
       image_arr = ["left_1.bmp", "left_2.bmp", "left_3.bmp", "left_4.bmp", "left_5.bmp", "left_6.bmp",
                    "right_1.bmp", "right_2.bmp", "right_3.bmp", "right_4.bmp", "right_5.bmp", "right_6.bmp"]
-      # image_arr = ["left_1.bmp"]
+      # image_arr = ["left_3.bmp"]
       for image_name in image_arr:
          start = time.time()
          cvImage = cv2.imread("./data_test/test/" + image_name)
@@ -1016,6 +1016,18 @@ class QmyWidget(QWidget):
          #    cvtImage_flip = cv2.flip(cvtImage, 1)
          #    result, dir_useless, imageDraw_useless, angle_useless, x_useless, y_useless = surf.match(self.temp_arr,
          #                                                                                             cvtImage_flip)
+
+         # if (angle > 0.2 and angle < numpy.pi / 2 - 0.2) or (angle > -numpy.pi + 0.2 and angle < -numpy.pi / 2 - 0.2):
+         if (angle > 0.2 and angle < numpy.pi - 0.2) or (angle > -numpy.pi + 0.2 and angle < - 0.2):
+            rows, cols = cvtImage.shape[:2]
+
+            center = (cols / 2, rows / 2)
+            angle = int(angle*180/numpy.pi)
+            scale = 1
+
+            M = cv2.getRotationMatrix2D(center, angle, scale)
+            cvtImage_rotate = cv2.warpAffine(src=cvtImage, M=M, dsize=None, borderValue=(0, 0, 0))
+            result, dir_useless, imageDraw, angle_useless, x_useless, y_useless = surf.match(self.temp_arr, cvtImage_rotate, True)
 
          # 匹配结果不为空，则显示输入输出图像
          if not result is None:

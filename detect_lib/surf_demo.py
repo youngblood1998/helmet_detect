@@ -7,8 +7,8 @@ start = time.time()
 MIN_MATCH_COUNT = 10
 fsize = 0.1
 
-im1 = cv2.imread('../data_test/test/left_1.bmp', cv2.IMREAD_COLOR)
-im2 = cv2.imread('../data_test/test/left_4.bmp', cv2.IMREAD_COLOR)  # queryImage
+im1 = cv2.imread('../data_test/test/test.bmp', cv2.IMREAD_COLOR)
+im2 = cv2.imread('../data_test/test/right_1.bmp', cv2.IMREAD_COLOR)  # queryImage
 # im1 = cv2.imread('./data_color/templates/o1.bmp', cv2.IMREAD_COLOR)
 # im2 = cv2.imread('./data_color/matches/o1-1.bmp', cv2.IMREAD_COLOR)  # queryImage
 im1 = cv2.resize(im1, dsize=None, fx=fsize, fy=fsize, interpolation=cv2.INTER_LINEAR)

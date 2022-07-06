@@ -880,3 +880,85 @@
 # print("输出："+str(a))
 
 #-------------------------------------------
+# import cv2 as cv
+# import numpy as np
+#
+#
+# # bg_color = [50, 70, 50]
+# # threshold = 1500
+# bg_color = [200, 200, 200]
+# threshold = 9000
+#
+#
+# def calc_diff(pixel):
+#    return (pixel[0] - bg_color[0]) ** 2 + (pixel[1] - bg_color[1]) ** 2 + (pixel[2] - bg_color[2]) ** 2
+#
+# def remove_bg():
+#    # image_path = './data_test/test/left_3.bmp'
+#    image_path = './data_test/matchs_color/but-2.bmp'
+#    logo = cv.imread(image_path)
+#    logo = cv.resize(logo, dsize=None, fx=0.1, fy=0.1, interpolation=cv.INTER_LINEAR)
+#    # logo = cv.cvtColor(logo, cv.COLOR_BGR2BGRA)  # 将图像转成带透明通道的BGRA格式
+#    h, w = logo.shape[0:2]
+#    binary = np.zeros((h, w), dtype=np.uint8)
+#    for i in range(h):
+#       for j in range(w):
+#          if calc_diff(logo[i][j]) >= threshold:
+#             # # 若果logo[i][j]为背景，将其颜色设为白色，且完全透明
+#             # logo[i][j][0] = 255
+#             # logo[i][j][1] = 255
+#             # logo[i][j][2] = 255
+#             # logo[i][j][3] = 0
+#             binary[i][j] = 255
+#
+#    cv.imshow("binary", binary)
+#
+#    # g1 = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
+#    # binary_open = cv.morphologyEx(binary, cv.MORPH_OPEN, g1)
+#    # cv.imshow("binary_open", binary_open)
+#
+#    g2 = cv.getStructuringElement(cv.MORPH_RECT, (30, 30))
+#    binary_close = cv.morphologyEx(binary, cv.MORPH_CLOSE, g2)
+#    cv.imshow("binary_close", binary_close)
+#
+#    _, contours, _ = cv.findContours(binary_close, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+#    for cont in contours:
+#       # 对每个轮廓点求最小外接矩形
+#       rect = cv.minAreaRect(cont)
+#       # cv2.boxPoints可以将轮廓点转换为四个角点坐标
+#       box = cv.boxPoints(rect)
+#       # 这一步不影响后面的画图，但是可以保证四个角点坐标为顺时针
+#       startidx = box.sum(axis=1).argmin()
+#       box = np.roll(box, 4 - startidx, 0)
+#       # 在原图上画出预测的外接矩形
+#       box = box.reshape((-1, 1, 2)).astype(np.int32)
+#       cv.polylines(logo, [box], True, (0, 255, 0), 2)
+#
+#    cv.imshow("draw", logo)
+#    cv.waitKey(0)
+#    cv.destroyAllWindows()
+#
+#
+# if __name__ == '__main__':
+#    remove_bg()
+#----------------------------------------------------------------------------------
+import cv2 as cv
+
+img = cv.imread("./data_test/test/left_1.bmp")
+img = cv.resize(img, dsize=None, fx=0.1, fy=0.1, interpolation=cv.INTER_LINEAR)
+
+rows, cols = img.shape[:2]
+print(rows, cols)
+
+center = (cols/2, rows/2)
+angle = 45
+scale = 1
+
+M = cv.getRotationMatrix2D(center, angle, scale)
+img_rotate = cv.warpAffine(src=img, M=M, dsize=None, borderValue=(0, 0, 0))
+print(img_rotate.shape[:2])
+
+cv.imshow("img", img)
+cv.imshow("img_rotate", img_rotate)
+cv.waitKey(0)
+cv.destroyAllWindows()
