@@ -191,43 +191,43 @@ class SurfBf:
             #     print("面积不匹配")
             #     continue
 
-            # # 将模板数组中所有同名同颜色的进行交叉比对
-            # for temp_cmp in temp_arr:
-            #     if temp_cmp["model"] == temp["model"] and temp_cmp["color"] == temp["color"]:
-            #         print(temp_cmp["model"] + temp_cmp["size"] + ":")
-            #         # 计算宽度
-            #         im1_width = temp_cmp["width"] * self.resize_times
-            #
-            #         if length2 < (1.0 / self.area) * im1_width or length2 > (self.area) * im1_width:
-            #             print("长度不匹配")
-            #             continue
-            #
-            #         # area_ratio = float(abs(area2-area1))/area2
-            #         area_ratio = float(abs(length2-im1_width))/length2
-            #         print(length2, im1_width, area_ratio)
-            #         # 选择最好的匹配
-            #         if area_ratio < min_area_ratio:
-            #             min_area_ratio = area_ratio
-            #             best_match = temp_cmp["image"]  # 最好的模板
-            #             draw_point = dst  # 最好匹配的框
-            #             best_temp = temp_cmp  # 最好模板的路径
-            #             angles = cal.rotationMatrix_to_eulerAngles(matrix)  # 角度
+            # 将模板数组中所有同名同颜色的进行交叉比对
+            for temp_cmp in temp_arr:
+                if temp_cmp["model"] == temp["model"] and temp_cmp["color"] == temp["color"]:
+                    print(temp_cmp["model"] + temp_cmp["size"] + ":")
+                    # 计算宽度
+                    im1_width = temp_cmp["width"] * self.resize_times
 
-            im1_width = np.shape(im1)[1]
-            if length2 < (1.0 / self.area) * im1_width or length2 > (self.area) * im1_width:
-                print("长度不匹配")
-                continue
+                    if length2 < (1.0 / self.area) * im1_width or length2 > (self.area) * im1_width:
+                        print("长度不匹配")
+                        continue
 
-            # area_ratio = float(abs(area2-area1))/area2
-            area_ratio = float(abs(length2 - im1_width)) / length2
-            print(length2, im1_width, area_ratio)
-            # 选择最好的匹配
-            if area_ratio < min_area_ratio:
-                min_area_ratio = area_ratio
-                best_match = im1  # 最好的模板
-                draw_point = dst  # 最好匹配的框
-                best_temp = temp  # 最好模板的路径
-                angles = cal.rotationMatrix_to_eulerAngles(matrix)  # 角度
+                    # area_ratio = float(abs(area2-area1))/area2
+                    area_ratio = float(abs(length2-im1_width))/length2
+                    print(length2, im1_width, area_ratio)
+                    # 选择最好的匹配
+                    if area_ratio < min_area_ratio:
+                        min_area_ratio = area_ratio
+                        best_match = temp_cmp["image"]  # 最好的模板
+                        draw_point = dst  # 最好匹配的框
+                        best_temp = temp_cmp  # 最好模板的路径
+                        angles = cal.rotationMatrix_to_eulerAngles(matrix)  # 角度
+
+            # im1_width = np.shape(im1)[1]
+            # if length2 < (1.0 / self.area) * im1_width or length2 > (self.area) * im1_width:
+            #     print("长度不匹配")
+            #     continue
+            #
+            # # area_ratio = float(abs(area2-area1))/area2
+            # area_ratio = float(abs(length2 - im1_width)) / length2
+            # # print(length2, im1_width, area_ratio)
+            # # 选择最好的匹配
+            # if area_ratio < min_area_ratio:
+            #     min_area_ratio = area_ratio
+            #     best_match = im1  # 最好的模板
+            #     draw_point = dst  # 最好匹配的框
+            #     best_temp = temp  # 最好模板的路径
+            #     angles = cal.rotationMatrix_to_eulerAngles(matrix)  # 角度
 
         # print(angles)
         print("-"*20)

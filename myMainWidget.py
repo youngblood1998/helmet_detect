@@ -435,10 +435,10 @@ class QmyWidget(QWidget):
 
             rows, cols = cvtImage.shape[:2]
             center = (cols / 2, rows / 2)
-            angle = int(angle*180/numpy.pi)
+            angle_ = int(angle*180/numpy.pi)
             scale = 1
 
-            M = cv2.getRotationMatrix2D(center, angle, scale)
+            M = cv2.getRotationMatrix2D(center, angle_, scale)
             cvtImage_rotate = cv2.warpAffine(src=cvtImage, M=M, dsize=None, borderValue=(0, 0, 0))
             result, dir_useless, imageDraw_useless, angle_useless, x_useless, y_useless = surf.match(self.temp_arr, cvtImage_rotate, self.ignore_flag)
 

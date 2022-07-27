@@ -942,23 +942,31 @@
 # if __name__ == '__main__':
 #    remove_bg()
 #----------------------------------------------------------------------------------
+# import cv2 as cv
+#
+# img = cv.imread("./data_test/test/left_1.bmp")
+# img = cv.resize(img, dsize=None, fx=0.1, fy=0.1, interpolation=cv.INTER_LINEAR)
+#
+# rows, cols = img.shape[:2]
+# print(rows, cols)
+#
+# center = (cols/2, rows/2)
+# angle = 45
+# scale = 1
+#
+# M = cv.getRotationMatrix2D(center, angle, scale)
+# img_rotate = cv.warpAffine(src=img, M=M, dsize=None, borderValue=(0, 0, 0))
+# print(img_rotate.shape[:2])
+#
+# cv.imshow("img", img)
+# cv.imshow("img_rotate", img_rotate)
+# cv.waitKey(0)
+# cv.destroyAllWindows()
+#----------------------------------------------------------------------------------
 import cv2 as cv
 
-img = cv.imread("./data_test/test/left_1.bmp")
-img = cv.resize(img, dsize=None, fx=0.1, fy=0.1, interpolation=cv.INTER_LINEAR)
-
-rows, cols = img.shape[:2]
-print(rows, cols)
-
-center = (cols/2, rows/2)
-angle = 45
-scale = 1
-
-M = cv.getRotationMatrix2D(center, angle, scale)
-img_rotate = cv.warpAffine(src=img, M=M, dsize=None, borderValue=(0, 0, 0))
-print(img_rotate.shape[:2])
-
-cv.imshow("img", img)
-cv.imshow("img_rotate", img_rotate)
-cv.waitKey(0)
-cv.destroyAllWindows()
+img = cv.imread("./data_test/test/test.bmp")
+img1 = cv.resize(img, dsize=None, fx=0.95, fy=0.95, interpolation=cv.INTER_LINEAR)
+img2 = cv.resize(img, dsize=None, fx=0.90, fy=0.90, interpolation=cv.INTER_LINEAR)
+cv.imwrite("./data_test/test/test1.bmp", img1)
+cv.imwrite("./data_test/test/test2.bmp", img2)
