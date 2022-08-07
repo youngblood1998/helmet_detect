@@ -107,6 +107,7 @@ class QmyDialogSelectTemp(QDialog):
       self.tableModel.setHeaderData(self.fldNum["date"], Qt.Horizontal, "日期")
       self.tableModel.setHeaderData(self.fldNum["width"], Qt.Horizontal, "图片宽")
       self.tableModel.setHeaderData(self.fldNum["height"], Qt.Horizontal, "图片高")
+      self.tableModel.setHeaderData(self.fldNum["area"], Qt.Horizontal, "面积")
       self.tableModel.setHeaderData(self.fldNum["image"], Qt.Horizontal, "图片")
 
       # for i in range(1, 11):
@@ -194,7 +195,7 @@ class QmyDialogSelectTemp(QDialog):
             self.ui.tableWidgetSelectTemp.setItem(row, 3, item)
 
          for index in t:
-            if column == 11:
+            if column == 12:
                break
             item = QTableWidgetItem(str(t[index]))
             self.ui.tableWidgetSelectTemp.setItem(row, column, item)
@@ -232,7 +233,7 @@ class QmyDialogSelectTemp(QDialog):
    # 展示选择的模板
    def do_showSelectTemp(self):
       # 设置表格列名
-      headerText = ["输出端口", "同时输出", "正向", "反向", "型号", "尺寸", "颜色", "曝光时间(μs)", "日期", "图片宽", "图片高"]
+      headerText = ["输出端口", "同时输出", "正向", "反向", "型号", "尺寸", "颜色", "曝光时间(μs)", "日期", "图片宽", "图片高", "面积"]
       self.ui.tableWidgetSelectTemp.setColumnCount(len(headerText))
       for i in range(len(headerText)):
          headerItem = QTableWidgetItem(headerText[i])

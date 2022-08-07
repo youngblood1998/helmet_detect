@@ -5,13 +5,11 @@ import numpy as np
 import cv2
 from detect_lib.calculate_area import CalArea
 from detect_lib.hist_compare import hist_compare
-from detect_lib.remove_background import remove_bg
-from detect_lib.concate_image import concate_image
 
 
 class SurfBf:
     def __init__(self, min_match_count=10, resize_times=0.3, max_matches=500, flann_index_kdtree=0,
-                 trees=5, checks=50, k=2, ratio=0.9, hist2=0.8, area=1.25, bg_color=(80, 120, 120), bg_thresh=8000):
+                 trees=5, checks=50, k=2, ratio=0.9, hist2=0.8, area=1.25):
         self.min_match_count = min_match_count  # 最小匹配数
         self.resize_times = resize_times    # 大小变换的倍数，越小越快越不准
         self.max_matches = max_matches  # 最大特征点数
@@ -22,8 +20,6 @@ class SurfBf:
         self.ratio = ratio  # 距离比例
         self.hist2 = hist2  # 颜色对比度
         self.area = area    # 面积匹配度
-        self.bg_color = bg_color
-        self.bg_thresh = bg_thresh
 
 
     def surf_bf(self, im1, kp1, des1, im2, ignore_flag):
@@ -140,24 +136,17 @@ class SurfBf:
         return len(good), dst, M
 
 
-    def match(self, temp_arr, im_2, ignore_flag):
+    def match(self, temp_arr, im2, ignore_flag):
         # 最多的匹配点个数
         # max_matches = 0
-        # min_area_ratio = 1
-        min_area_difference = im_2.shape[0]*im_2.shape[1]
-        min_area_rectangle_difference = im_2.shape[0]*im_2.shape[1]
+        min_area_ratio = 1
         best_match = None
         draw_point = []
         best_temp = None
         angles = []
         # 读取被匹配的图片
         # print(im2.shape)
-        im2 = cv2.resize(im_2, dsize=None, fx=self.resize_times, fy=self.resize_times, interpolation=cv2.INTER_LINEAR)
-        # 计算0.1倍时的面积
-        im2_1 = cv2.resize(im_2, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
-        area2, binary = remove_bg(self.bg_color, self.bg_thresh, im2_1)
-
-        cal = CalArea()
+        im2 = cv2.resize(im2, dsize=None, fx=self.resize_times, fy=self.resize_times, interpolation=cv2.INTER_LINEAR)
         # 在模板中找最佳匹配
         for temp in temp_arr:
             print("模板" + temp['model'] + temp['size'])
@@ -177,35 +166,68 @@ class SurfBf:
             if len(dst) == 0:
                 # print(1)
                 continue
-            # # 计算两边中点连线长度
-            # point0 = (int((dst[0][0][0] + dst[1][0][0])/2), int((dst[0][0][1] + dst[1][0][1])/2))
-            # point1 = (int((dst[2][0][0] + dst[3][0][0])/2), int((dst[2][0][1] + dst[3][0][1])/2))
-            # 求最接近的矩形
-            area_rectangle_2 = cal.get_point_area([dst[0][0], dst[1][0], dst[2][0], dst[3][0]])
-            im1_height = np.shape(im1)[0]
-            im1_width = np.shape(im1)[1]
-            area_rectangle_1 = im1_width * im1_height
-            area_rectangle_difference = abs(area_rectangle_2 - area_rectangle_1)
-            print(area_rectangle_2, area_rectangle_1, area_rectangle_difference)
-            if area_rectangle_difference < min_area_rectangle_difference:
-                min_area_rectangle_difference = area_rectangle_difference
-                draw_point = dst  # 最好匹配的框
-                angles = cal.rotationMatrix_to_eulerAngles(matrix)  # 角度
-            # length2 = cal.get_distance(point0, point1)
+            # 计算两边中点连线长度
+            point0 = (int((dst[0][0][0] + dst[1][0][0])/2), int((dst[0][0][1] + dst[1][0][1])/2))
+            point1 = (int((dst[2][0][0] + dst[3][0][0])/2), int((dst[2][0][1] + dst[3][0][1])/2))
+            cal = CalArea()
+            length2 = cal.get_distance(point0, point1)
+            # print(point0, point1)
+            # # 计算匹配框的面积
+            # cal = CalArea()
+            # area2 = cal.get_point_area([dst[0][0], dst[1][0], dst[2][0], dst[3][0]])
+            # print(dst, area2)
+            # im2_width = abs(dst[0][0][0]-dst[2][0][0])
+            # im2_height = abs(dst[0][0][1]-dst[2][0][1])
+            # print(area1, area2)
+            # i/f (im2_width < 0.5*im1_width or im2_height < 0.5*im1_height) \
+            #         or ((im2_width > 2*im1_width or im2_height > 2*im1_height)):
+            #     print(2)
+            #     continue
+            # 面积不合适直接跳过
+            # if area2 < 0.8*area1 or area2 > 1.25*area1:
+            #     print("面积不匹配")
+            #     continue
+            # if area2 < (1.0/self.area)*area1 or area2 > (self.area)*area1:
+            #     print("面积不匹配")
+            #     continue
 
             # 将模板数组中所有同名同颜色的进行交叉比对
             for temp_cmp in temp_arr:
                 if temp_cmp["model"] == temp["model"] and temp_cmp["color"] == temp["color"]:
                     print(temp_cmp["model"] + temp_cmp["size"] + ":")
                     # 计算宽度
-                    area1 = temp_cmp["area"]
-                    area_difference = abs(area2-area1)
-                    print(area2, area1, area_difference)
+                    im1_width = temp_cmp["width"] * self.resize_times
+
+                    if length2 < (1.0 / self.area) * im1_width or length2 > (self.area) * im1_width:
+                        print("长度不匹配")
+                        continue
+
+                    # area_ratio = float(abs(area2-area1))/area2
+                    area_ratio = float(abs(length2-im1_width))/length2
+                    print(length2, im1_width, area_ratio)
                     # 选择最好的匹配
-                    if area_difference < min_area_difference:
-                        min_area_difference = area_difference
-                        best_match = temp_cmp["image"]  # 最好的模板图片
-                        best_temp = temp_cmp  # 最好模板
+                    if area_ratio < min_area_ratio:
+                        min_area_ratio = area_ratio
+                        best_match = temp_cmp["image"]  # 最好的模板
+                        draw_point = dst  # 最好匹配的框
+                        best_temp = temp_cmp  # 最好模板的路径
+                        angles = cal.rotationMatrix_to_eulerAngles(matrix)  # 角度
+
+            # im1_width = np.shape(im1)[1]
+            # if length2 < (1.0 / self.area) * im1_width or length2 > (self.area) * im1_width:
+            #     print("长度不匹配")
+            #     continue
+            #
+            # # area_ratio = float(abs(area2-area1))/area2
+            # area_ratio = float(abs(length2 - im1_width)) / length2
+            # # print(length2, im1_width, area_ratio)
+            # # 选择最好的匹配
+            # if area_ratio < min_area_ratio:
+            #     min_area_ratio = area_ratio
+            #     best_match = im1  # 最好的模板
+            #     draw_point = dst  # 最好匹配的框
+            #     best_temp = temp  # 最好模板的路径
+            #     angles = cal.rotationMatrix_to_eulerAngles(matrix)  # 角度
 
         # print(angles)
         print("-"*20)
@@ -221,11 +243,7 @@ class SurfBf:
             return None, 0, [], 0, 0, 0
         # 把匹配的框画进去，并表示出来
         im2 = cv2.polylines(im2, [np.int32(draw_point)], True, (255, 0, 0), 3, cv2.LINE_AA)
-        binary = cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB)
-        binary = cv2.resize(binary, dsize=None, fx=self.resize_times*3, fy=self.resize_times*3,
-                            interpolation=cv2.INTER_LINEAR)
-        im2 = concate_image(im2, binary)
-        # im2 = cv2.line(im2, point0, point1, (0, 0, 255), 3)
+        im2 = cv2.line(im2, point0, point1, (0, 0, 255), 3)
         # cv2.imshow("template", best_match)
         # cv2.imshow("result", im2)
         # cv2.waitKey(0)

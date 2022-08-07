@@ -963,10 +963,132 @@
 # cv.waitKey(0)
 # cv.destroyAllWindows()
 #----------------------------------------------------------------------------------
-import cv2 as cv
+# import cv2 as cv
+#
+# img = cv.imread("./data_test/test/test.bmp")
+# img1 = cv.resize(img, dsize=None, fx=0.95, fy=0.95, interpolation=cv.INTER_LINEAR)
+# img2 = cv.resize(img, dsize=None, fx=0.90, fy=0.90, interpolation=cv.INTER_LINEAR)
+# cv.imwrite("./data_test/test/test1.bmp", img1)
+# cv.imwrite("./data_test/test/test2.bmp", img2)
+#-------------------------------------------------------------------
+# import cv2 as cv
+# import numpy as np
+# import time
+#
+# # bg_color = [50, 70, 50]
+# # threshold = 1500
+# bg_color = [120, 120, 80]
+# threshold = 8000
+#
+#
+# def calc_diff(pixel):
+#    return (pixel[0] - bg_color[0]) ** 2 + (pixel[1] - bg_color[1]) ** 2 + (pixel[2] - bg_color[2]) ** 2
+#
+# def FillHole(mask):
+#    image, contours, hierarchy = cv.findContours(mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+#    len_contour = len(contours)
+#    contour_list = []
+#    for i in range(len_contour):
+#       drawing = np.zeros_like(mask, np.uint8)  # create a black image
+#       img_contour = cv.drawContours(drawing, contours, i, (255, 255, 255), -1)
+#       contour_list.append(img_contour)
+#
+#    out = sum(contour_list)
+#    return out
+#
+# def remove_bg():
+#    # image_path = './data_test/test/left_3.bmp'
+#    image_path = './data_test/20220805/M/w-M-l.bmp'
+#    logo = cv.imread(image_path)
+#    logo = cv.resize(logo, dsize=None, fx=0.1, fy=0.1, interpolation=cv.INTER_LINEAR)
+#    min_x, min_y, w, h = cv.selectROI("selectROI", logo)
+#    logo = logo[min_y:min_y+h, min_x:min_x+w]
+#    start = time.time()
+#    # logo = cv.GaussianBlur(logo, (0, 0), 4)
+#    logo = cv.blur(logo, (7,7))
+#    # logo = cv.cvtColor(logo, cv.COLOR_BGR2BGRA)  # 将图像转成带透明通道的BGRA格式
+#    h, w = logo.shape[0:2]
+#    binary = np.zeros((h, w), dtype=np.uint8)
+#    for i in range(h):
+#       for j in range(w):
+#          if calc_diff(logo[i][j]) >= threshold:
+#             # # 若果logo[i][j]为背景，将其颜色设为白色，且完全透明
+#             # logo[i][j][0] = 255
+#             # logo[i][j][1] = 255
+#             # logo[i][j][2] = 255
+#             # logo[i][j][3] = 0
+#             binary[i][j] = 255
+#          else:
+#             binary[i][j] = 0
+#
+#    binary = FillHole(binary)
+#    print(np.count_nonzero(binary))
+#    print(time.time()-start)
+#    cv.imshow("binary", binary)
+#
+#    # g1 = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
+#    # binary_open = cv.morphologyEx(binary, cv.MORPH_OPEN, g1)
+#    # cv.imshow("binary_open", binary_open)
+#
+#    # g2 = cv.getStructuringElement(cv.MORPH_RECT, (30, 30))
+#    # binary_close = cv.morphologyEx(binary, cv.MORPH_CLOSE, g2)
+#    # cv.imshow("binary_close", binary_close)
+#    #
+#    # _, contours, _ = cv.findContours(binary_close, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+#    # for cont in contours:
+#    #    # 对每个轮廓点求最小外接矩形
+#    #    rect = cv.minAreaRect(cont)
+#    #    # cv2.boxPoints可以将轮廓点转换为四个角点坐标
+#    #    box = cv.boxPoints(rect)
+#    #    # 这一步不影响后面的画图，但是可以保证四个角点坐标为顺时针
+#    #    startidx = box.sum(axis=1).argmin()
+#    #    box = np.roll(box, 4 - startidx, 0)
+#    #    # 在原图上画出预测的外接矩形
+#    #    box = box.reshape((-1, 1, 2)).astype(np.int32)
+#    #    cv.polylines(logo, [box], True, (0, 255, 0), 2)
+#    #
+#    # cv.imshow("draw", logo)
+#    cv.waitKey(0)
+#    cv.destroyAllWindows()
+#
+#
+# if __name__ == '__main__':
+#    remove_bg()
+#--------------------------------------------------------
+# from detect_lib.remove_background import remove_bg
+# import cv2 as cv
+#
+# image_path = './data_test/20220805/M/w-M-l.bmp'
+# logo = cv.imread(image_path)
+# logo = cv.resize(logo, dsize=None, fx=0.1, fy=0.1, interpolation=cv.INTER_LINEAR)
+# logo_1 = cv.resize(logo, dsize=None, fx=0.5, fy=0.5, interpolation=cv.INTER_LINEAR)
+# # min_x, min_y, w, h = cv.selectROI("selectROI", logo)
+# # logo = logo[min_y:min_y+h, min_x:min_x+w]
+#
+# # area, binary = remove_bg([120,120,80], 8000, logo)
+# # print(area)
+# # cv.imshow("binary", binary)
+# logo_c = cv.hconcat([logo, logo_1])
+# cv.imshow("logo_c", logo_c)
+# cv.waitKey(0)
+# cv.destroyAllWindows()
+#------------------------------------------
+# import numpy as np
+#
+# a = np.array([[1,2,3]])
+# b = a.copy()
+# print(b)
+#-------------------------------------------
+from cv2 import cv2
+import numpy as np
+from detect_lib.concate_image import concate_image
 
-img = cv.imread("./data_test/test/test.bmp")
-img1 = cv.resize(img, dsize=None, fx=0.95, fy=0.95, interpolation=cv.INTER_LINEAR)
-img2 = cv.resize(img, dsize=None, fx=0.90, fy=0.90, interpolation=cv.INTER_LINEAR)
-cv.imwrite("./data_test/test/test1.bmp", img1)
-cv.imwrite("./data_test/test/test2.bmp", img2)
+
+image = cv2.imread("./data_test/20220805/M/w-M-l.bmp")
+transformed_image = cv2.resize(image, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+transformed_image = cv2.resize(transformed_image, dsize=None, fx=3, fy=3, interpolation=cv2.INTER_LINEAR)
+all_image = concate_image(image, transformed_image)
+
+cv2.namedWindow("compare image", cv2.WINDOW_NORMAL)
+cv2.imshow("compare image", all_image)
+cv2.waitKey(0)

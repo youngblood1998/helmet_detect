@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # import copy
+import copy
 import ctypes
 import time
 import datetime
@@ -25,8 +26,9 @@ from camera_lib import enumCameras, openCamera, closeCamera, setSoftTriggerConf,
 # from detect_lib.sift_flann_new import SiftFlann
 from detect_lib.surf_bf_new import SurfBf
 from detect_lib.draw_line import drawline, drawgrid
+from detect_lib.remove_background import remove_bg
 from relay_lib import init_relay, close_relay, test_delay, export_relay, export_arr_relay
-from detect_lib.hist_compare import hist_compare
+# from detect_lib.hist_compare import hist_compare
 from myDialogMakeTemp import QmyDialogMakeTemp
 from myDialogSetParams import QmyDialogSetParams
 from myDialogSelectTemp import QmyDialogSelectTemp
@@ -193,6 +195,10 @@ class QmyWidget(QWidget):
          'hist1': 0.0,
          'hist2': 0.4,
          'area': 1.25,
+         'R': 80,
+         'G': 120,
+         'B': 120,
+         'bg_thresh':8000,
          'trees': 5,
          'checks': 50,
          'k': 2,
@@ -402,7 +408,9 @@ class QmyWidget(QWidget):
                           checks=int(self.settings.value("checks")),
                           k=int(self.settings.value("k")),
                           ratio=float(self.settings.value("ratio")),
-                          hist2=float(self.settings.value("hist2")), area=float(self.settings.value("area"))
+                          hist2=float(self.settings.value("hist2")), area=float(self.settings.value("area")),
+                          bg_color=(int(self.settings.value("R")), int(self.settings.value("G")), int(self.settings.value("B"))),
+                          bg_thresh=int(self.settings.value("bg_thresh"))
                           )
          # kp2, des2 = self.do_createDes(cvtImage)
          #
@@ -430,17 +438,17 @@ class QmyWidget(QWidget):
          #    cvtImage_flip = cv2.flip(cvtImage, 1)
          #    result, dir_useless, imageDraw_useless, angle_useless, x_useless, y_useless = surf.match(self.temp_arr, cvtImage_flip, self.ignore_flag)
 
-         # 旋转到与模板同一角度再检测
-         if (angle > 0.2 and angle < numpy.pi - 0.2) or (angle > -numpy.pi + 0.2 and angle < - 0.2):
-
-            rows, cols = cvtImage.shape[:2]
-            center = (cols / 2, rows / 2)
-            angle_ = int(angle*180/numpy.pi)
-            scale = 1
-
-            M = cv2.getRotationMatrix2D(center, angle_, scale)
-            cvtImage_rotate = cv2.warpAffine(src=cvtImage, M=M, dsize=None, borderValue=(0, 0, 0))
-            result, dir_useless, imageDraw_useless, angle_useless, x_useless, y_useless = surf.match(self.temp_arr, cvtImage_rotate, self.ignore_flag)
+         # # 旋转到与模板同一角度再检测
+         # if (angle > 0.2 and angle < numpy.pi - 0.2) or (angle > -numpy.pi + 0.2 and angle < - 0.2):
+         #
+         #    rows, cols = cvtImage.shape[:2]
+         #    center = (cols / 2, rows / 2)
+         #    angle_ = int(angle*180/numpy.pi)
+         #    scale = 1
+         #
+         #    M = cv2.getRotationMatrix2D(center, angle_, scale)
+         #    cvtImage_rotate = cv2.warpAffine(src=cvtImage, M=M, dsize=None, borderValue=(0, 0, 0))
+         #    result, dir_useless, imageDraw_useless, angle_useless, x_useless, y_useless = surf.match(self.temp_arr, cvtImage_rotate, self.ignore_flag)
 
          # 匹配结果不为空，则显示输入输出图像
          if not result is None:
@@ -905,7 +913,7 @@ class QmyWidget(QWidget):
 
 
    # 执行模板的数据库插入
-   def do_sqlInsert(self, image, model, size, color):
+   def do_sqlInsert(self, image, model, size, color, area):
       # 判断有无数据库，没有的话提示
       if not os.path.exists('./helmetDB.db3'):
          messageBox = QMessageBox(QMessageBox.Warning, "warning", "没有数据库文件")
@@ -917,9 +925,9 @@ class QmyWidget(QWidget):
       cursor = conn.cursor()
 
       # 执行插入
-      sql = 'INSERT into helmet values (?,?,?,?,?,?,?,?)'
+      sql = 'INSERT into helmet values (?,?,?,?,?,?,?,?,?)'
       exposure_time = int(self.settings.value('exposure_time'))
-      x = [model, size, color, exposure_time, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), image.shape[1], image.shape[0],
+      x = [model, size, color, exposure_time, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), image.shape[1], image.shape[0], area,
            image.tobytes()]
       cursor.execute(sql, x)
       conn.commit()
@@ -1013,6 +1021,7 @@ class QmyWidget(QWidget):
          temp["color"] = t["color"]
          temp["width"] = int(t["width"])
          temp["height"] = int(t["height"])
+         temp["area"] = int(t["area"])
          image = numpy.frombuffer(t["image"], dtype=numpy.uint8)
          temp["image"] = numpy.reshape(image, (temp["height"], temp["width"], -1))
          kp, des = self.do_createDes(temp["image"])
@@ -1353,6 +1362,16 @@ class QmyWidget(QWidget):
             self.ui.btnMakeTemp.setEnabled(True)
             self.ui.btnStartDetect.setEnabled(True)
          return
+      # 计算面积
+      R = self.settings.value("R")
+      G = self.settings.value("G")
+      B = self.settings.value("B")
+      bg_thresh = int(self.settings.value("bg_thresh"))
+      bg_color = [int(R), int(G), int(B)]
+
+      image_resize = cv2.resize(image, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+      area, binary_ = remove_bg(bg_color, bg_thresh, image_resize)
+
       # 选择感兴趣区域
       nImage = self.do_selectROI(image)
       if len(nImage) != 0:
@@ -1372,7 +1391,7 @@ class QmyWidget(QWidget):
             #    nImage = cv2.cvtColor(nImage, cv2.COLOR_BGR2RGB)
             # else:
             #    nImage = cv2.cvtColor(nImage, cv2.COLOR_GRAY2RGB)
-            ret = self.do_sqlInsert(nImage, model, size, color)
+            ret = self.do_sqlInsert(nImage, model, size, color, area)
 
             if ret == 0:
                # messageBox = QMessageBox(QMessageBox.about, "ok", "数据库插入成功")

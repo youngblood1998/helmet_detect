@@ -46,6 +46,10 @@ class QmyDialogSetParams(QDialog):
       self.ui.doubleSpinBoxHist1.setValue(float(setting.value('hist1')))
       self.ui.doubleSpinBoxHist2.setValue(float(setting.value('hist2')))
       self.ui.doubleSpinBoxArea.setValue(float(setting.value('area')))
+      self.ui.spinBoxR.setValue(int(setting.value('R')))
+      self.ui.spinBoxG.setValue(int(setting.value('G')))
+      self.ui.spinBoxB.setValue(int(setting.value('B')))
+      self.ui.spinBoxBgThresh.setValue(int(setting.value('bg_thresh')))
       self.ui.spinBoxTree.setValue(int(setting.value('trees')))
       self.ui.spinBoxChecks.setValue(int(setting.value('checks')))
       self.ui.spinBoxK.setValue(int(setting.value('k')))
@@ -65,6 +69,10 @@ class QmyDialogSetParams(QDialog):
          'hist1': self.ui.doubleSpinBoxHist1.value(),
          'hist2': self.ui.doubleSpinBoxHist2.value(),
          'area': self.ui.doubleSpinBoxArea.value(),
+         'R': self.ui.spinBoxR.value(),
+         'G': self.ui.spinBoxG.value(),
+         'B': self.ui.spinBoxB.value(),
+         'bg_thresh': self.ui.spinBoxBgThresh.value(),
          'trees': self.ui.spinBoxTree.value(),
          'checks': self.ui.spinBoxChecks.value(),
          'k': self.ui.spinBoxK.value(),
@@ -90,6 +98,10 @@ class QmyDialogSetParams(QDialog):
       self.ui.doubleSpinBoxHist1.setValue(self.default_params['hist1'])
       self.ui.doubleSpinBoxHist2.setValue(self.default_params['hist2'])
       self.ui.doubleSpinBoxArea.setValue(self.default_params['area'])
+      self.ui.spinBoxR.setValue(self.default_params['R'])
+      self.ui.spinBoxG.setValue(self.default_params['G'])
+      self.ui.spinBoxB.setValue(self.default_params['B'])
+      self.ui.spinBoxBgThresh.setValue(self.default_params['bg_thresh'])
       self.ui.spinBoxTree.setValue(self.default_params['trees'])
       self.ui.spinBoxChecks.setValue(self.default_params['checks'])
       self.ui.spinBoxK.setValue(self.default_params['k'])
@@ -110,6 +122,10 @@ class QmyDialogSetParams(QDialog):
          'hist1': self.ui.doubleSpinBoxHist1.value(),
          'hist2': self.ui.doubleSpinBoxHist2.value(),
          'area': self.ui.doubleSpinBoxArea.value(),
+         'R': self.ui.spinBoxR.value(),
+         'G': self.ui.spinBoxG.value(),
+         'B': self.ui.spinBoxB.value(),
+         'bg_thresh': self.ui.spinBoxBgThresh.value(),
          'trees': self.ui.spinBoxTree.value(),
          'checks': self.ui.spinBoxChecks.value(),
          'k': self.ui.spinBoxK.value(),
