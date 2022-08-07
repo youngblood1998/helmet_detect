@@ -1,6 +1,6 @@
 # import numpy
 import copy
-
+import time
 import numpy as np
 import cv2
 from detect_lib.calculate_area import CalArea
@@ -125,7 +125,7 @@ class SurfBf:
             if not ignore_flag:
                 resize_im2 = cv2.resize(im2[int(im2_h/3):int(im2_h*2/3), int(im2_w/3):int(im2_w*2/3), :], dsize=None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
                 resize_im1 = cv2.resize(im1, dsize=None, fx=resize, fy=resize, interpolation=cv2.INTER_LINEAR)
-                # print(hist_compare(resize_im2, resize_im1))
+                print(hist_compare(resize_im2, resize_im1))
                 if hist_compare(resize_im2, resize_im1) < self.hist2:
                     print("颜色不匹配："+str(hist_compare(resize_im2, resize_im1)))
                     return 0, [], None
@@ -152,11 +152,13 @@ class SurfBf:
         angles = []
         # 读取被匹配的图片
         # print(im2.shape)
+        # start = time.time()
         im2 = cv2.resize(im_2, dsize=None, fx=self.resize_times, fy=self.resize_times, interpolation=cv2.INTER_LINEAR)
         # 计算0.1倍时的面积
-        im2_1 = cv2.resize(im_2, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+        im2_1 = cv2.resize(im_2, dsize=None, fx=0.05, fy=0.05, interpolation=cv2.INTER_LINEAR)
         area2, binary = remove_bg(self.bg_color, self.bg_thresh, im2_1)
-
+        # print("耗时")
+        # print(time.time()-start)
         cal = CalArea()
         # 在模板中找最佳匹配
         for temp in temp_arr:
@@ -206,7 +208,9 @@ class SurfBf:
                         min_area_difference = area_difference
                         best_match = temp_cmp["image"]  # 最好的模板图片
                         best_temp = temp_cmp  # 最好模板
-
+                    print("-"*10)
+            # print("耗时")
+            # print(time.time()-start)
         # print(angles)
         print("-"*20)
             # # 选择最好的匹配

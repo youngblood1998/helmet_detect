@@ -1055,23 +1055,23 @@
 # if __name__ == '__main__':
 #    remove_bg()
 #--------------------------------------------------------
-# from detect_lib.remove_background import remove_bg
-# import cv2 as cv
-#
-# image_path = './data_test/20220805/M/w-M-l.bmp'
-# logo = cv.imread(image_path)
-# logo = cv.resize(logo, dsize=None, fx=0.1, fy=0.1, interpolation=cv.INTER_LINEAR)
+from detect_lib.remove_background import remove_bg
+import cv2 as cv
+
+image_path = './data_test/20220805/L/w-L-l.bmp'
+logo = cv.imread(image_path)
+logo = cv.resize(logo, dsize=None, fx=0.1, fy=0.1, interpolation=cv.INTER_LINEAR)
 # logo_1 = cv.resize(logo, dsize=None, fx=0.5, fy=0.5, interpolation=cv.INTER_LINEAR)
-# # min_x, min_y, w, h = cv.selectROI("selectROI", logo)
-# # logo = logo[min_y:min_y+h, min_x:min_x+w]
-#
-# # area, binary = remove_bg([120,120,80], 8000, logo)
-# # print(area)
-# # cv.imshow("binary", binary)
+# min_x, min_y, w, h = cv.selectROI("selectROI", logo)
+# logo = logo[min_y:min_y+h, min_x:min_x+w]
+
+area, binary = remove_bg([120,120,80], 8000, logo)
+print(area)
+# cv.imshow("binary", binary)
 # logo_c = cv.hconcat([logo, logo_1])
 # cv.imshow("logo_c", logo_c)
-# cv.waitKey(0)
-# cv.destroyAllWindows()
+cv.waitKey(0)
+cv.destroyAllWindows()
 #------------------------------------------
 # import numpy as np
 #
@@ -1079,16 +1079,16 @@
 # b = a.copy()
 # print(b)
 #-------------------------------------------
-from cv2 import cv2
-import numpy as np
-from detect_lib.concate_image import concate_image
-
-
-image = cv2.imread("./data_test/20220805/M/w-M-l.bmp")
-transformed_image = cv2.resize(image, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
-transformed_image = cv2.resize(transformed_image, dsize=None, fx=3, fy=3, interpolation=cv2.INTER_LINEAR)
-all_image = concate_image(image, transformed_image)
-
-cv2.namedWindow("compare image", cv2.WINDOW_NORMAL)
-cv2.imshow("compare image", all_image)
-cv2.waitKey(0)
+# from cv2 import cv2
+# import numpy as np
+# from detect_lib.concate_image import concate_image
+#
+#
+# image = cv2.imread("./data_test/20220805/M/w-M-l.bmp")
+# transformed_image = cv2.resize(image, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+# transformed_image = cv2.resize(transformed_image, dsize=None, fx=3, fy=3, interpolation=cv2.INTER_LINEAR)
+# all_image = concate_image(image, transformed_image)
+#
+# cv2.namedWindow("compare image", cv2.WINDOW_NORMAL)
+# cv2.imshow("compare image", all_image)
+# cv2.waitKey(0)

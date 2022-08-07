@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
 # import copy
+import copy
 import ctypes
+import time
 import datetime
 import gc
 import os
 import sys
 import sqlite3
 # import time
-import time
-
 import cv2
 import numpy
 import csv
@@ -25,8 +25,10 @@ from camera_lib import enumCameras, openCamera, closeCamera, setSoftTriggerConf,
    setLineTriggerConf
 # from detect_lib.sift_flann_new import SiftFlann
 from detect_lib.surf_bf_new import SurfBf
-from relay_lib import init_relay, close_relay, test_delay, export_relay
-from detect_lib.hist_compare import hist_compare
+from detect_lib.draw_line import drawline, drawgrid
+from detect_lib.remove_background import remove_bg
+from relay_lib import init_relay, close_relay, test_delay, export_relay, export_arr_relay
+# from detect_lib.hist_compare import hist_compare
 from myDialogMakeTemp import QmyDialogMakeTemp
 from myDialogSetParams import QmyDialogSetParams
 from myDialogSelectTemp import QmyDialogSelectTemp
@@ -92,14 +94,44 @@ class Relaythread(QThread):
 
    def run(self):
       try:
+         # 测试继电器
          test_delay(self.relay_dic)
          self.signal_1.emit(1)
       except:
          return
 
 
+# 继电器触发的线程
+class RelayExport_thread(QThread):
+   def __init__(self, relay_dic):
+      super(RelayExport_thread, self).__init__()
+      self.relay_dic = relay_dic
+
+   def __del__(self):
+      try:
+         self.wait()
+      except:
+         pass
+
+   def run(self):
+      try:
+         self.wait()
+      except:
+         return
+
+   def export(self, port, t):
+      # 继电器输出
+      export_relay(self.relay_dic, port, t)
+
+   def export_arr(self, port_arr, t):
+      # 继电器多端口输出
+      export_arr_relay(self.relay_dic, port_arr, t)
+
+
 # # 触发间隔的线程
 # class Interval_thread(QThread):
+#    #  通过类成员对象定义信号对象
+#    signal_2 = pyqtSignal(int)
 #
 #    def __init__(self):
 #       super(Interval_thread, self).__init__()
@@ -116,14 +148,13 @@ class Relaythread(QThread):
 #       except:
 #          return
 #
-#    def sleep(self, t, func):
-#       self.timer = QTimer()
-#       self.timer.timeout.connect(func)
-#       self.timer.setSingleShot(True)
-#       self.timer.start(t * 1000)
+#    def sleep(self, t):
+#       time.sleep(t)
+#       self.signal_2.emit(1)
 
 
 class QmyWidget(QWidget):
+
    interval_signal = pyqtSignal(int)
 
    def __init__(self, parent=None):
@@ -135,32 +166,39 @@ class QmyWidget(QWidget):
       self.detect_flag = False   # 检测开关标志
       self.tcp_flag = False      # TCP连接标志
       self.relay_flag = False    # 继电器连接标志
-      self.interval_flag = False
+      self.interval_flag = False    # 触发间隔标志
+      self.ignore_flag = False      # 是否忽略颜色
 
       # 将一部分按钮设置成非使能状态
       self.ui.btnLinkCamera.setEnabled(False)
       self.ui.btnTestCamera.setEnabled(False)
       self.ui.btnCloseCamera.setEnabled(False)
-      self.ui.btnStartDetect.setEnabled(True)
+      self.ui.btnStartDetect.setEnabled(False)
       self.ui.btnStopDetect.setEnabled(False)
       self.ui.btnMakeTemp.setEnabled(False)
       self.ui.btnTCPClose.setEnabled(False)
       self.ui.btnCloseRelay.setEnabled(False)
       self.ui.btnTestRelay.setEnabled(False)
-      default_ip = gethostbyname(gethostname())
+      default_ip = gethostbyname(gethostname())    # 本机ip地址
       self.ui.lineEditAdr.setText(default_ip)
       self.ui.lineEditPort.setText("8080")
 
       # 默认参数
       self.fixed_params = {
-         'exposure_time': 10000,
+         'exposure_time': 19000,
          'trigger_delay': 1000000,
+         'interval_time': 2,
+         'delay_time': 0.5,
          'min_match_count': 5,
          'resize_times': 0.1,
          'max_matches': 500,
          'hist1': 0.0,
          'hist2': 0.4,
          'area': 1.25,
+         'R': 80,
+         'G': 120,
+         'B': 120,
+         'bg_thresh':8000,
          'trees': 5,
          'checks': 50,
          'k': 2,
@@ -169,11 +207,12 @@ class QmyWidget(QWidget):
 
       self.select_temp = []   # 选择的模板
       self.temp_arr = []   # 选择的模板(包含关键点和描述子)
+      # self.temp_arr_ignore = {}  # 忽略颜色时的模板数组
+      # self.temp_arr_ignore_index = {}
       self.mythread = None
-      # self.interval_thread = Interval_thread()
-      # self.interval_thread.start()
+      # self.interval_thread = None
       self.interval_signal.connect(self.do_interval_set_true)
-      self.num = 0
+      self.num = 0      # 继电器端口数
 
       # 有无默认配置文件，没有的话创建并设置默认参数
       if not os.path.exists('./defaultConfig.ini'):
@@ -193,37 +232,31 @@ class QmyWidget(QWidget):
       self.GrabbingFrameCallbackFuncEx = callbackFuncEx(self.test_callback)
       self.UnGrabbingFrameCallbackFuncEx = callbackFuncEx(self.test_callback)
 
+      # 打开软件时打开继电器
+      self.on_btnOpenRelay_clicked()
 
 ##  ==============自定义功能函数========================
-   def do_interval_set_true(self):
-      self.interval_flag = True
-      self.timer = QTimer()
-      self.timer.timeout.connect(self.do_interval_set_false)
-      self.timer.setSingleShot(True)
-      self.timer.start(3 * 1000)
-
-
-   def do_interval_set_false(self):
-      self.interval_flag = False
-      print(2)
-
-
    # 输出csv文件
    def write_csv(self, model, size, color, ok, x, y, angle):
+
+      # 先查看有无文件夹，没有就创建
       if not os.path.exists("../records"):
          os.mkdir("../records")
 
+      # 根据日期创建csv文件并写入表头
       if not os.path.isfile("../records/" + str(datetime.date.today()) + ".csv"):
          with open("../records/" + str(datetime.date.today()) + ".csv", 'w', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(["", "型号", "尺寸", "颜色", "时间", "OK", "NG", "总数", "X位置", "Y位置", "角度"])
 
+      # 打开csv文件获取相关信息
       with open("../records/" + str(datetime.date.today()) + ".csv", 'r', newline='') as file:
          reader = csv.reader(file)
          reader_list = list(reader)
          length = len(reader_list)
          last_row = reader_list[-1]
 
+      # 写入csv文件
       with open("../records/" + str(datetime.date.today()) + ".csv", "a", newline='') as file:
          writer = csv.writer(file)
          if length == 1:
@@ -271,8 +304,10 @@ class QmyWidget(QWidget):
       return 0
 
 
-   # 回调函数，用于测试相机
+   # 回调函数，用于检测
    def test_callback(self, frame, userInfo):
+      # self.interval_thread.sleep(int(self.settings.value('interval_time')))
+
       nRet = frame.contents.valid(frame)
       if (nRet != 0):
          print("frame is invalid!")
@@ -315,153 +350,232 @@ class QmyWidget(QWidget):
          colorByteArray = bytearray(rgbBuff)
          cvImage = numpy.array(colorByteArray).reshape(imageParams.height, imageParams.width, 3)
 
-      # 格式转换
-      if len(cvImage.shape) == 3:
-         cvtImage = cv2.cvtColor(cvImage, cv2.COLOR_BGR2RGB)
-      else:
-         cvtImage = cv2.cvtColor(cvImage, cv2.COLOR_GRAY2RGB)
+      print("触发传感器")
+      # 判断是否在间隔时间内，是则不执行检测
+      if not self.interval_flag:
+         print("进行检测")
+         self.interval_signal.emit(1)
 
-      # 显示输入
-      try:
-         qt_image = QtGui.QImage(cvtImage.data,
-                                 cvtImage.shape[1],
-                                 cvtImage.shape[0],
-                                 cvtImage.shape[1] * 3,
-                                 QtGui.QImage.Format.Format_RGB888)
-
-         w = cvtImage.shape[1]   # 图像宽度
-         h = cvtImage.shape[0]   # 图像高度
-         W = self.ui.labInput.size().width()    # 显示框的宽度
-         H = self.ui.labInput.size().height()   # 显示框的高度
-
-         # 自适应图像宽高
-         if float(H) / h > float(W) / w:
-            self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToWidth(W))
+         # 格式转换
+         if len(cvImage.shape) == 3:
+            cvtImage = cv2.cvtColor(cvImage, cv2.COLOR_BGR2RGB)
          else:
-            self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
-      except Exception as e:
-         QMessageBox.warning(self, "警告", "图片输入出错")
+            cvtImage = cv2.cvtColor(cvImage, cv2.COLOR_GRAY2RGB)
 
-      # 清空输入图像和输出图像
-      self.ui.labOutput.clear()
-      self.ui.label_2.clear()
-
-      # # 检测
-      # sift = SiftFlann(min_match_count=int(self.settings.value("min_match_count")),
-      #                  resize_times=float(self.settings.value("resize_times")),
-      #                  max_matches=int(self.settings.value("max_matches")),
-      #                  trees=int(self.settings.value("trees")),
-      #                  checks=int(self.settings.value("checks")),
-      #                  k=int(self.settings.value("k")),
-      #                  ratio=float(self.settings.value("ratio"))
-      #                  )
-      # # kp2, des2 = self.do_createDes(cvtImage)
-      # # 返回结果，模板、方向、画出匹配框的图像
-      # result, dir, imageDraw, angle, x, y = sift.match(self.temp_arr, cvtImage)
-
-      # 检测
-      surf = SurfBf(min_match_count=int(self.settings.value("min_match_count")),
-                       resize_times=float(self.settings.value("resize_times")),
-                       max_matches=int(self.settings.value("max_matches")),
-                       trees=int(self.settings.value("trees")),
-                       checks=int(self.settings.value("checks")),
-                       k=int(self.settings.value("k")),
-                       ratio=float(self.settings.value("ratio")),
-                       hist2=float(self.settings.value("hist2")), area=float(self.settings.value("area"))
-                       )
-      # kp2, des2 = self.do_createDes(cvtImage)
-      #
-      # # 直方图对比过滤模板
-      # if len(cvImage.shape) == 3:
-      #    resize_cvtImage = cv2.resize(cvtImage, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
-      #    height = resize_cvtImage.shape[0]
-      #    width = resize_cvtImage.shape[1]
-      #    resize_cvtImage = resize_cvtImage[int(height*0.4):int(height*0.6),int(width*0.4):int(width*0.6),:]
-      #    detect_temp_arr = []
-      #    for detect_temp in self.temp_arr:
-      #       resize_detect_temp = cv2.resize(detect_temp['image'], dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
-      #       match = hist_compare(resize_cvtImage, resize_detect_temp)
-      #       if match > float(self.settings.value('hist1')):
-      #          detect_temp_arr.append(detect_temp)
-      # else:
-      #    detect_temp_arr = self.temp_arr
-      #
-      # # 返回结果，模板、方向、画出匹配框的图像
-      # result, dir, imageDraw, angle, x, y = surf.match(detect_temp_arr, cvtImage)
-      result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage)
-
-      # 匹配结果不为空，则显示输入输出图像
-      if not result is None:
-         print(result["model"])
-         # 显示画出匹配框的图像
+         # 显示输入
          try:
-            qt_image = QtGui.QImage(imageDraw.data,
-                                    imageDraw.shape[1],
-                                    imageDraw.shape[0],
-                                    imageDraw.shape[1] * 3,
+            qt_image = QtGui.QImage(cvtImage.data,
+                                    cvtImage.shape[1],
+                                    cvtImage.shape[0],
+                                    cvtImage.shape[1] * 3,
                                     QtGui.QImage.Format.Format_RGB888)
 
-            w = imageDraw.shape[1]
-            h = imageDraw.shape[0]
-            W = self.ui.labInput.size().width()
-            H = self.ui.labInput.size().height()
+            w = cvtImage.shape[1]   # 图像宽度
+            h = cvtImage.shape[0]   # 图像高度
+            W = self.ui.labInput.size().width()    # 显示框的宽度
+            H = self.ui.labInput.size().height()   # 显示框的高度
 
+            # 自适应图像宽高
             if float(H) / h > float(W) / w:
                self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToWidth(W))
             else:
                self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
          except Exception as e:
             QMessageBox.warning(self, "警告", "图片输入出错")
-         # 显示输出图像
-         image = result["image"]
-         try:
-            qt_image = QtGui.QImage(image.data,
-                                    image.shape[1],
-                                    image.shape[0],
-                                    image.shape[1] * 3,
-                                    QtGui.QImage.Format.Format_RGB888)
 
-            w = image.shape[1]
-            h = image.shape[0]
-            W = self.ui.labOutput.size().width()
-            H = self.ui.labOutput.size().height()
+         # 清空输入图像和输出图像
+         self.ui.labOutput.clear()
+         self.ui.label_2.clear()
 
-            if float(H) / h > float(W) / w:
-               self.ui.labOutput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToWidth(W))
-            else:
-               self.ui.labOutput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
-         except Exception as e:
-            QMessageBox.warning(self, "警告", "图片输入出错")
+         # # 检测
+         # sift = SiftFlann(min_match_count=int(self.settings.value("min_match_count")),
+         #                  resize_times=float(self.settings.value("resize_times")),
+         #                  max_matches=int(self.settings.value("max_matches")),
+         #                  trees=int(self.settings.value("trees")),
+         #                  checks=int(self.settings.value("checks")),
+         #                  k=int(self.settings.value("k")),
+         #                  ratio=float(self.settings.value("ratio"))
+         #                  )
+         # # kp2, des2 = self.do_createDes(cvtImage)
+         # # 返回结果，模板、方向、画出匹配框的图像
+         # result, dir, imageDraw, angle, x, y = sift.match(self.temp_arr, cvtImage)
 
-         # 显示输出信息
-         label = self.ui.label_2
-         label.setStyleSheet('color: green')
-         s = "前" if dir==0 else "后"
-         label.setText("型号："+result["model"]+"；\t尺寸:"+result["size"]+"；\t方向："+str(s))
-         # self.ui.label_2.setText("型号："+result["model"]+"；尺寸:"+result["size"]+"；方向："+angle)
-         # 写入csv
-         self.write_csv(result["model"], result["size"], result["color"], True, x, y, angle)
-         # 传输数据
-         if self.mythread:
-            string = result["model"]+";"+result["size"]+";"+result["color"]+";"+str(dir)+";"+str(x)+";"+str(y)+";"+str(angle)
-            self.mythread.send(string)
-         # 继电器输出
-         if self.relay_flag:
-            export_relay(self.relay_dic, result["port"])
-      else:
-         label = self.ui.label_2
-         label.setStyleSheet('color: red')
-         self.ui.label_2.setText("无匹配结果")
-         # 写入csv
-         self.write_csv("", "", "", False, 0, 0, 0)
-         # 传输数据
-         if self.mythread:
-            string = ";" + ";" + ";" + str(-1) + ";" + str(0) + ";" + str(0) + ";" + str(0)
-            self.mythread.send(string)
-         # 继电器输出
-         if self.relay_flag:
-            export_relay(self.relay_dic, self.num)
-      gc.collect()
+         # 检测
+         surf = SurfBf(min_match_count=int(self.settings.value("min_match_count")),
+                          resize_times=float(self.settings.value("resize_times")),
+                          max_matches=int(self.settings.value("max_matches")),
+                          trees=int(self.settings.value("trees")),
+                          checks=int(self.settings.value("checks")),
+                          k=int(self.settings.value("k")),
+                          ratio=float(self.settings.value("ratio")),
+                          hist2=float(self.settings.value("hist2")), area=float(self.settings.value("area")),
+                          bg_color=(int(self.settings.value("R")), int(self.settings.value("G")), int(self.settings.value("B"))),
+                          bg_thresh=int(self.settings.value("bg_thresh"))
+                          )
+         # kp2, des2 = self.do_createDes(cvtImage)
+         #
+         # # 直方图对比过滤模板
+         # if len(cvImage.shape) == 3:
+         #    resize_cvtImage = cv2.resize(cvtImage, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+         #    height = resize_cvtImage.shape[0]
+         #    width = resize_cvtImage.shape[1]
+         #    resize_cvtImage = resize_cvtImage[int(height*0.4):int(height*0.6),int(width*0.4):int(width*0.6),:]
+         #    detect_temp_arr = []
+         #    for detect_temp in self.temp_arr:
+         #       resize_detect_temp = cv2.resize(detect_temp['image'], dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+         #       match = hist_compare(resize_cvtImage, resize_detect_temp)
+         #       if match > float(self.settings.value('hist1')):
+         #          detect_temp_arr.append(detect_temp)
+         # else:
+         #    detect_temp_arr = self.temp_arr
+         #
+         # # 返回结果，模板、方向、画出匹配框的图像
+         # result, dir, imageDraw, angle, x, y = surf.match(detect_temp_arr, cvtImage)
+         result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage, self.ignore_flag)
+
+         # # 左右反转再检测,似乎有一点效果
+         # if (angle > 0.2 and angle < numpy.pi/2-0.2) or (angle > -numpy.pi+0.2 and angle < -numpy.pi/2-0.2):
+         #    cvtImage_flip = cv2.flip(cvtImage, 1)
+         #    result, dir_useless, imageDraw_useless, angle_useless, x_useless, y_useless = surf.match(self.temp_arr, cvtImage_flip, self.ignore_flag)
+
+         # # 旋转到与模板同一角度再检测
+         # if (angle > 0.2 and angle < numpy.pi - 0.2) or (angle > -numpy.pi + 0.2 and angle < - 0.2):
+         #
+         #    rows, cols = cvtImage.shape[:2]
+         #    center = (cols / 2, rows / 2)
+         #    angle_ = int(angle*180/numpy.pi)
+         #    scale = 1
+         #
+         #    M = cv2.getRotationMatrix2D(center, angle_, scale)
+         #    cvtImage_rotate = cv2.warpAffine(src=cvtImage, M=M, dsize=None, borderValue=(0, 0, 0))
+         #    result, dir_useless, imageDraw_useless, angle_useless, x_useless, y_useless = surf.match(self.temp_arr, cvtImage_rotate, self.ignore_flag)
+
+         # 匹配结果不为空，则显示输入输出图像
+         if not result is None:
+            print("匹配结果:" + result["model"] + result["size"])
+            print("\n")
+            # 显示画出匹配框的图像
+            try:
+               qt_image = QtGui.QImage(imageDraw.data,
+                                       imageDraw.shape[1],
+                                       imageDraw.shape[0],
+                                       imageDraw.shape[1] * 3,
+                                       QtGui.QImage.Format.Format_RGB888)
+
+               w = imageDraw.shape[1]
+               h = imageDraw.shape[0]
+               W = self.ui.labInput.size().width()
+               H = self.ui.labInput.size().height()
+
+               if float(H) / h > float(W) / w:
+                  self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToWidth(W))
+               else:
+                  self.ui.labInput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
+            except Exception as e:
+               QMessageBox.warning(self, "警告", "图片输入出错")
+            # 显示输出图像
+            image = result["image"]
+            try:
+               qt_image = QtGui.QImage(image.data,
+                                       image.shape[1],
+                                       image.shape[0],
+                                       image.shape[1] * 3,
+                                       QtGui.QImage.Format.Format_RGB888)
+
+               w = image.shape[1]
+               h = image.shape[0]
+               W = self.ui.labOutput.size().width()
+               H = self.ui.labOutput.size().height()
+
+               if float(H) / h > float(W) / w:
+                  self.ui.labOutput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToWidth(W))
+               else:
+                  self.ui.labOutput.setPixmap(QtGui.QPixmap.fromImage(qt_image).scaledToHeight(H))
+            except Exception as e:
+               QMessageBox.warning(self, "警告", "图片输入出错")
+
+            # 显示输出信息
+            label = self.ui.label_2
+            label.setStyleSheet('color: green')
+            s = "前" if dir==0 else "后"
+            label.setText("型号："+result["model"]+"；\t尺寸："+result["size"]+"；\t方向："+str(s))
+            # self.ui.label_2.setText("型号："+result["model"]+"；尺寸:"+result["size"]+"；方向："+angle)
+            # 写入csv
+            self.write_csv(result["model"], result["size"], result["color"], True, x, y, angle)
+            # 传输数据
+            if self.mythread:
+               string = result["model"]+";"+result["size"]+";"+result["color"]+";"+str(dir)+";"+str(x)+";"+str(y)+";"+str(angle)
+               self.mythread.send(string)
+            # 继电器输出
+            # if self.relay_flag:
+            #    self.relay_export_thread.export(result["port"], float(self.settings.value("delay_time")))
+               # export_relay(self.relay_dic, result["port"])
+            if (dir == 0 and result["forward"] == 1) or (dir == 1 and result["backward"] == 1):
+               if self.relay_flag:
+                  # 判断是否多端口同时输出
+                  if int(result["check"]) == 0:
+                     if result["port_index"] < len(result["port"]):
+                        while result["port"][result["port_index"]] > self.num and result["port_index"] < len(
+                              result["port"]):
+                           result["port_index"] = result["port_index"] + 1
+                        if result["port_index"] < len(result["port"]):
+                           text = str(label.text()) + "；\t输出端口：" + str(result["port"][result["port_index"]])
+                           label.setText(text)
+                           self.relay_export_thread.export(result["port"][result["port_index"]],
+                                                           float(self.settings.value("delay_time")))
+                           result["port_index"] = result["port_index"] + 1
+                        if result["port_index"] >= len(result["port"]):
+                           result["port_index"] = 0
+                  else:
+                     text = str(label.text()) + "；\t输出端口：" + str(result["port"])
+                     label.setText(text)
+                     self.relay_export_thread.export_arr(result["port"], float(self.settings.value("delay_time")))
+                  # # 是否忽略颜色
+                  # if self.ignore_flag:
+                  #    if int(result["check"]) == 0:
+                  #       name = result["model"]+result["size"]
+                  #       if self.temp_arr_ignore_index[name] < len(self.temp_arr_ignore[name]):
+                  #          while self.temp_arr_ignore[name][self.temp_arr_ignore_index[name]] > self.num and self.temp_arr_ignore_index[name] < len(self.temp_arr_ignore[name]):
+                  #             self.temp_arr_ignore_index[name] = self.temp_arr_ignore_index[name]+1
+                  #          if self.temp_arr_ignore_index[name] < len(self.temp_arr_ignore[name]):
+                  #             text = str(label.text()) + "；\t输出端口：" + str(self.temp_arr_ignore[name][self.temp_arr_ignore_index[name]])
+                  #             label.setText(text)
+                  #             self.relay_export_thread.export(self.temp_arr_ignore[name][self.temp_arr_ignore_index[name]], float(self.settings.value("delay_time")))
+                  #             self.temp_arr_ignore_index[name] = self.temp_arr_ignore_index[name]+1
+                  #          if self.temp_arr_ignore_index[name] >= len(self.temp_arr_ignore[name]):
+                  #             self.temp_arr_ignore_index[name] = 0
+                  #    else:
+                  #       self.relay_export_thread.export_arr(self.temp_arr_ignore[result["model"]+result["size"]], float(self.settings.value("delay_time")))
+                  # else:
+                  #    # 判断是否多端口同时输出
+                  #    if int(result["check"]) == 0:
+                  #       if result["port_index"] < len(result["port"]):
+                  #          while result["port"][result["port_index"]] > self.num and result["port_index"] < len(result["port"]):
+                  #             result["port_index"] = result["port_index"]+1
+                  #          if result["port_index"] < len(result["port"]):
+                  #             text = str(label.text()) + "；\t输出端口：" + str(result["port"][result["port_index"]])
+                  #             label.setText(text)
+                  #             self.relay_export_thread.export(result["port"][result["port_index"]], float(self.settings.value("delay_time")))
+                  #             result["port_index"] = result["port_index"]+1
+                  #          if result["port_index"] >= len(result["port"]):
+                  #             result["port_index"] = 0
+                  #    else:
+                  #       self.relay_export_thread.export_arr(result["port"], float(self.settings.value("delay_time")))
+         else:
+            label = self.ui.label_2
+            label.setStyleSheet('color: red')
+            self.ui.label_2.setText("无匹配结果")
+            # 写入csv
+            self.write_csv("", "", "", False, 0, 0, 0)
+            # 传输数据
+            if self.mythread:
+               string = ";" + ";" + ";" + str(-1) + ";" + str(0) + ";" + str(0) + ";" + str(0)
+               self.mythread.send(string)
+            # # 继电器输出
+            # if self.relay_flag:
+            #    self.relay_export_thread.export(self.num, float(self.settings.value("delay_time")))
+               # export_relay(self.relay_dic, self.num)
+         gc.collect()
 
 
    # 测试相机
@@ -601,19 +715,27 @@ class QmyWidget(QWidget):
          # --- end if ---
 
          # 将相机内容缩小显示
-         cvImage = cv2.resize(cvImage, dsize=None, fx=0.3, fy=0.3, interpolation=cv2.INTER_LINEAR)
+         cvImage = cv2.resize(cvImage, dsize=None, fx=0.25, fy=0.25, interpolation=cv2.INTER_LINEAR)
 
+         # # 格式转换
+         # if len(cvImage.shape) == 3:
+         #    cvImage = cv2.cvtColor(cvImage, cv2.COLOR_BGR2RGB)
+         # else:
+         #    cvImage = cv2.cvtColor(cvImage, cv2.COLOR_GRAY2RGB)
          # 格式转换
          if len(cvImage.shape) == 3:
-            cvImage = cv2.cvtColor(cvImage, cv2.COLOR_BGR2RGB)
+            pass
          else:
-            cvImage = cv2.cvtColor(cvImage, cv2.COLOR_GRAY2RGB)
+            cvImage = cv2.cvtColor(cvImage, cv2.COLOR_GRAY2BGR)
 
          label = self.ui.label
          label.setStyleSheet('color: green')
          label.setText("测试相机中")
 
          self.ui.btnTestCamera.setEnabled(False)
+
+         # 画网格
+         drawgrid(cvImage, 2)
 
          cv2.imshow("Test Camera", cvImage)
          gc.collect()
@@ -751,6 +873,8 @@ class QmyWidget(QWidget):
       rImage = cv2.resize(image, dsize=None, fx=dsize, fy=dsize, interpolation=cv2.INTER_LINEAR)
       # selectROI和imshow的默认类型是BGR
       rImage = cv2.cvtColor(rImage, cv2.COLOR_RGB2BGR)
+      # 画网格
+      # drawgrid(rImage, 10)
       min_x, min_y, w, h = cv2.selectROI('select_roi', rImage)
       if len(rImage.shape) == 3:
          nImage = image[int(min_y/dsize):int((min_y+h)/dsize), int(min_x/dsize):int((min_x+w)/dsize), :]
@@ -789,7 +913,7 @@ class QmyWidget(QWidget):
 
 
    # 执行模板的数据库插入
-   def do_sqlInsert(self, image, model, size, color):
+   def do_sqlInsert(self, image, model, size, color, area):
       # 判断有无数据库，没有的话提示
       if not os.path.exists('./helmetDB.db3'):
          messageBox = QMessageBox(QMessageBox.Warning, "warning", "没有数据库文件")
@@ -801,8 +925,9 @@ class QmyWidget(QWidget):
       cursor = conn.cursor()
 
       # 执行插入
-      sql = 'INSERT into helmet values (?,?,?,?,?,?,?)'
-      x = [model, size, color, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), image.shape[1], image.shape[0],
+      sql = 'INSERT into helmet values (?,?,?,?,?,?,?,?,?)'
+      exposure_time = int(self.settings.value('exposure_time'))
+      x = [model, size, color, exposure_time, datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), image.shape[1], image.shape[0], area,
            image.tobytes()]
       cursor.execute(sql, x)
       conn.commit()
@@ -869,15 +994,34 @@ class QmyWidget(QWidget):
       # 模板字典
       for t in self.select_temp:
          temp = {}
+         # 继电器端口数组
          if t["port"] == "":
-            temp["port"] = -1
+            temp["port"] = []
          else:
-            temp["port"] = int(t["port"])
+            try:
+               # 根据‘，’和‘,’分割成数组
+               arr = t["port"].split(',')
+               temp["port"] = []
+               for a in arr:
+                  temp["port"].extend(a.split("，"))
+               # 转换为int类型
+               for i in range(len(temp["port"])):
+                  # print(temp["port"][i])
+                  temp["port"][i] = int(temp["port"][i])
+            except:
+               return None
+         # print(temp["port"])
+         # 用于继电器端口循环输出的索引
+         temp["port_index"] = 0
+         temp["check"] = t["check"]
+         temp["forward"] = t["forward"]
+         temp["backward"] = t["backward"]
          temp["model"] = t["model"]
          temp["size"] = t["size"]
          temp["color"] = t["color"]
          temp["width"] = int(t["width"])
          temp["height"] = int(t["height"])
+         temp["area"] = int(t["area"])
          image = numpy.frombuffer(t["image"], dtype=numpy.uint8)
          temp["image"] = numpy.reshape(image, (temp["height"], temp["width"], -1))
          kp, des = self.do_createDes(temp["image"])
@@ -886,6 +1030,17 @@ class QmyWidget(QWidget):
          # temp["descriptor"] = numpy.reshape(numpy.frombuffer(t[des_index]), (-1, 128))
          temp_arr.append(temp)
       return temp_arr
+
+
+   # def do_ignore_temp_arr(self):
+   #    for t in self.temp_arr:
+   #       if t["model"]+t["size"] in self.temp_arr_ignore:
+   #          self.temp_arr_ignore[t["model"]+t["size"]] = list(set(self.temp_arr_ignore[t["model"]+t["size"]]) | set(t["port"]))
+   #       else:
+   #          self.temp_arr_ignore[t["model"]+t["size"]] = t["port"]
+   #       self.temp_arr_ignore_index[t["model"]+t["size"]] = 0
+   #    print(self.temp_arr_ignore)
+   #    print(self.temp_arr_ignore_index)
 
 
    def do_TCPLink(self, a):
@@ -901,9 +1056,18 @@ class QmyWidget(QWidget):
       self.ui.btnTestRelay.setEnabled(True)
 
 
-   def do_time(self):
+   def do_interval_set_true(self):
+      self.interval_flag = True
+      # 设置一个定时器，单次触发
+      self.timer = QTimer()
+      self.timer.timeout.connect(self.do_interval_set_false)
+      self.timer.setSingleShot(True)
+      self.timer.start(int(self.settings.value('interval_time')) * 1000)
+
+
+   def do_interval_set_false(self):
       self.interval_flag = False
-      print(2)
+
 
 ##  ==============event处理函数==========================
    # 关闭事件
@@ -913,10 +1077,10 @@ class QmyWidget(QWidget):
       if ret == QMessageBox.Yes:
          if self.detect_flag:
             self.do_stopDetect()
-            print(1)
+            print("停止检测")
          if self.camera_flag:
             closeCamera(self.camera)
-            print(2)
+            print("关闭相机")
             # 释放相关资源
             self.streamSource.contents.release(self.streamSource)
          if self.relay_flag:
@@ -930,12 +1094,14 @@ class QmyWidget(QWidget):
    # 检测相机
    @pyqtSlot()
    def on_btnDetectCamera_clicked(self):
-      # image_arr = ["left_1.bmp", "left_2.bmp", "left_3.bmp", "left_4.bmp", "left_5.bmp", "left_6.bmp",
-      #              "right_1.bmp", "right_2.bmp", "right_3.bmp", "right_4.bmp", "right_5.bmp", "right_6.bmp"]
-      image_arr = ["right_5.bmp"]
+      # image_arr = ["w-L-l.bmp", "w-L-r.bmp", "b-L-l.bmp", "b-L-r.bmp"]
+      image_arr = ["w-M-l.bmp", "w-M-r.bmp", "b-M-l.bmp", "b-M-r.bmp"]
+      # image_arr = ["w-S-l.bmp", "w-S-r.bmp"]
       for image_name in image_arr:
          start = time.time()
-         cvImage = cv2.imread("./data_test/test/" + image_name)
+         # cvImage = cv2.imread("./data_test/20220805/L/" + image_name)
+         cvImage = cv2.imread("./data_test/20220805/M/" + image_name)
+         # cvImage = cv2.imread("./data_test/20220805/S/" + image_name)
          # 格式转换
          if len(cvImage.shape) == 3:
             cvtImage = cv2.cvtColor(cvImage, cv2.COLOR_BGR2RGB)
@@ -1009,7 +1175,7 @@ class QmyWidget(QWidget):
          #
          # # 返回结果，模板、方向、画出匹配框的图像
          # result, dir, imageDraw, angle, x, y = surf.match(detect_temp_arr, cvtImage)
-         result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage, True)
+         result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage, False)
 
          # # 左右反转再检测
          # if (angle > 0.2 and angle < numpy.pi / 2 - 0.2) or (angle > -numpy.pi + 0.2 and angle < -numpy.pi / 2 - 0.2):
@@ -1017,17 +1183,18 @@ class QmyWidget(QWidget):
          #    result, dir_useless, imageDraw_useless, angle_useless, x_useless, y_useless = surf.match(self.temp_arr,
          #                                                                                             cvtImage_flip)
 
-         # if (angle > 0.2 and angle < numpy.pi / 2 - 0.2) or (angle > -numpy.pi + 0.2 and angle < -numpy.pi / 2 - 0.2):
-         if (angle > 0.2 and angle < numpy.pi - 0.2) or (angle > -numpy.pi + 0.2 and angle < - 0.2):
-            rows, cols = cvtImage.shape[:2]
-
-            center = (cols / 2, rows / 2)
-            angle_ = int(angle*180/numpy.pi)
-            scale = 1
-
-            M = cv2.getRotationMatrix2D(center, angle_, scale)
-            cvtImage_rotate = cv2.warpAffine(src=cvtImage, M=M, dsize=None, borderValue=(0, 0, 0))
-            result, dir_useless, imageDraw, angle_useless, x_useless, y_useless = surf.match(self.temp_arr, cvtImage_rotate, True)
+         # # if (angle > 0.2 and angle < numpy.pi / 2 - 0.2) or (angle > -numpy.pi + 0.2 and angle < -numpy.pi / 2 - 0.2):
+         # if (angle > 0.2 and angle < numpy.pi - 0.2) or (angle > -numpy.pi + 0.2 and angle < - 0.2):
+         #    rows, cols = cvtImage.shape[:2]
+         #
+         #    center = (cols / 2, rows / 2)
+         #    angle_ = int(angle * 180 / numpy.pi)
+         #    scale = 1
+         #
+         #    M = cv2.getRotationMatrix2D(center, angle_, scale)
+         #    cvtImage_rotate = cv2.warpAffine(src=cvtImage, M=M, dsize=None, borderValue=(0, 0, 0))
+         #    result, dir_useless, imageDraw, angle_useless, x_useless, y_useless = surf.match(self.temp_arr,
+         #                                                                                     cvtImage_rotate, True)
 
          # 匹配结果不为空，则显示输入输出图像
          if not result is None:
@@ -1210,23 +1377,26 @@ class QmyWidget(QWidget):
    # 开始检测
    @pyqtSlot()
    def on_btnStartDetect_clicked(self):
-      if not self.interval_flag:
-         self.interval_signal.emit(1)
-         print(1)
-         # 没有模板则提示
-         if len(self.select_temp) == 0:
-            QMessageBox.warning(self, "警告", "请选择模板")
-            return
-         # 按钮
-         self.ui.btnStartDetect.setEnabled(False)
-         self.ui.btnStopDetect.setEnabled(True)
-         self.ui.btnSetParams.setEnabled(False)
-         self.ui.btnSelectTemp.setEnabled(False)
-         self.ui.btnMakeTemp.setEnabled(False)
-         self.ui.btnTestCamera.setEnabled(False)
-         # 检测并设置标志
-         self.do_detect()
-         self.detect_flag = True
+      # self.interval_thread = Interval_thread()
+      # self.interval_thread.start()
+      # self.interval_thread.signal_2.connect(self.do_interval_set_false)
+
+      # 没有模板则提示
+      if len(self.select_temp) == 0:
+         QMessageBox.warning(self, "警告", "请选择模板")
+         return
+      # 按钮
+      self.ui.btnStartDetect.setEnabled(False)
+      self.ui.btnStopDetect.setEnabled(True)
+      self.ui.btnSetParams.setEnabled(False)
+      self.ui.btnSelectTemp.setEnabled(False)
+      self.ui.btnMakeTemp.setEnabled(False)
+      self.ui.btnTestCamera.setEnabled(False)
+      # 检测并设置标志
+      if self.relay_flag:
+         self.relay_export_thread = RelayExport_thread(self.relay_dic)
+      self.do_detect()
+      self.detect_flag = True
 
 
    # 停止检测
@@ -1266,7 +1436,7 @@ class QmyWidget(QWidget):
       # 用于传输的默认参数
       self.default_params = {}
       for param_name in self.fixed_params:
-         if param_name == 'resize_times' or param_name == 'ratio' or param_name == 'hist1' or param_name == 'hist2' or param_name == 'area':
+         if param_name == 'resize_times' or param_name == 'ratio' or param_name == 'hist1' or param_name == 'hist2' or param_name == 'area' or param_name == 'delay_time':
             self.default_params[param_name] = float(self.default_settings.value(param_name))
          else:
             self.default_params[param_name] = int(self.default_settings.value(param_name))
@@ -1277,6 +1447,7 @@ class QmyWidget(QWidget):
       # 根据选择决定是否更改参数
       if ret:
          new_params = dialogSetParams.get_new_params()
+         print(new_params)
          self.settings = QSettings("./config.ini", QSettings.IniFormat)
          old_resize = self.settings.value("resize_times")
          new_resize = new_params["resize_times"]
@@ -1284,7 +1455,7 @@ class QmyWidget(QWidget):
             self.settings.setValue(param_name, new_params[param_name])
          # 判断resize_times是否改变确定是否更改关键点和描述子
          if round(float(old_resize), 1) != round(new_resize, 1) and len(self.temp_arr) != 0:
-            print(1)
+            print("重新生成描述子")
             for t in self.temp_arr:
                kp, des = self.do_createDes(t["image"])
                t["kp"] = kp
@@ -1295,19 +1466,32 @@ class QmyWidget(QWidget):
    @pyqtSlot()
    def on_btnSelectTemp_clicked(self):
       # 跳出选择模板窗口
-      dialogSelectTemp = QmyDialogSelectTemp()
-      dialogSelectTemp.set_temp(self.select_temp, self.num)
-      dialogSelectTemp.do_showSelectTemp()
-      ret = dialogSelectTemp.exec()
-      # 根据选择的模板生成数组
-      if ret:
-         self.select_temp = dialogSelectTemp.get_temp()
-         # print(len(self.select_temp))
-         self.temp_arr = self.do_selectTempArr()
-         print("选择了"+str(len(self.temp_arr))+"模板")
-         for t in self.select_temp:
-            print(t["port"])
-            print(t["model"])
+      select_flag = False
+      while not select_flag:
+         dialogSelectTemp = QmyDialogSelectTemp()
+
+         dialogSelectTemp.set_temp(self.select_temp, self.num)
+         dialogSelectTemp.set_ignore_flag(self.ignore_flag)
+         dialogSelectTemp.do_showSelectTemp()
+         ret = dialogSelectTemp.exec()
+         # 根据选择的模板生成数组
+         if ret:
+            self.select_temp = dialogSelectTemp.get_temp()
+            self.ignore_flag = dialogSelectTemp.get_ignore_flag()
+            # print(len(self.select_temp))
+            temp_arr = self.do_selectTempArr()
+            # 判断端口参数设置是否出错，出错重新设置
+            if not temp_arr is None:
+               self.temp_arr = temp_arr
+               # self.do_ignore_temp_arr()
+               print("选择了"+str(len(self.temp_arr))+"模板")
+               for t in self.select_temp:
+                  print(t["model"]+"的输出端口号："+str(t["port"]))
+               select_flag = True
+            else:
+               QMessageBox.warning(self, "提示", "请在输出端口按照 1,2,3 格式输入", QMessageBox.Yes)
+         else:
+            select_flag = True
       # print(len(self.temp_arr))
       # for i in self.temp_arr:
       #    print(i["des"])
@@ -1330,6 +1514,16 @@ class QmyWidget(QWidget):
             self.ui.btnMakeTemp.setEnabled(True)
             self.ui.btnStartDetect.setEnabled(True)
          return
+      # 计算面积
+      R = self.settings.value("R")
+      G = self.settings.value("G")
+      B = self.settings.value("B")
+      bg_thresh = int(self.settings.value("bg_thresh"))
+      bg_color = [int(R), int(G), int(B)]
+
+      image_resize = cv2.resize(image, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+      area, binary_ = remove_bg(bg_color, bg_thresh, image_resize)
+
       # 选择感兴趣区域
       nImage = self.do_selectROI(image)
       if len(nImage) != 0:
@@ -1349,7 +1543,7 @@ class QmyWidget(QWidget):
             #    nImage = cv2.cvtColor(nImage, cv2.COLOR_BGR2RGB)
             # else:
             #    nImage = cv2.cvtColor(nImage, cv2.COLOR_GRAY2RGB)
-            ret = self.do_sqlInsert(nImage, model, size, color)
+            ret = self.do_sqlInsert(nImage, model, size, color, area)
 
             if ret == 0:
                # messageBox = QMessageBox(QMessageBox.about, "ok", "数据库插入成功")
@@ -1408,13 +1602,16 @@ class QmyWidget(QWidget):
    # 打开继电器
    @pyqtSlot()
    def on_btnOpenRelay_clicked(self):
+      # 继电器初始化，拿到继电器字典
       self.relay_dic = init_relay()
       print(self.relay_dic)
       if len(self.relay_dic) != 0:
+         # 计算端口数
          num = 0
          for key, value in self.relay_dic.items():
             num += value-1
          self.num = num
+
          label = self.ui.labRelay
          label.setStyleSheet('color: green')
          label.setText(str(len(self.relay_dic))+"个继电器,"+str(num)+"个端口")
@@ -1423,7 +1620,7 @@ class QmyWidget(QWidget):
          self.ui.btnCloseRelay.setEnabled(True)
          self.ui.btnTestRelay.setEnabled(True)
 
-         self.relay_flag = True
+         self.relay_flag = True  # 继电器开关标志
       else:
          label = self.ui.labRelay
          label.setStyleSheet('color: red')

@@ -198,7 +198,7 @@ class QmyWidget(QWidget):
          'R': 80,
          'G': 120,
          'B': 120,
-         'bg_thresh':8000,
+         'bg_thresh': 8000,
          'trees': 5,
          'checks': 50,
          'k': 2,
@@ -1369,7 +1369,7 @@ class QmyWidget(QWidget):
       bg_thresh = int(self.settings.value("bg_thresh"))
       bg_color = [int(R), int(G), int(B)]
 
-      image_resize = cv2.resize(image, dsize=None, fx=0.1, fy=0.1, interpolation=cv2.INTER_LINEAR)
+      image_resize = cv2.resize(image, dsize=None, fx=0.05, fy=0.05, interpolation=cv2.INTER_LINEAR)
       area, binary_ = remove_bg(bg_color, bg_thresh, image_resize)
 
       # 选择感兴趣区域
