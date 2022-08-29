@@ -1058,15 +1058,21 @@
 from detect_lib.remove_background import remove_bg
 import cv2 as cv
 
-image_path = './data_test/20220805/L/w-L-l.bmp'
+image_path = './data_test/20220805/L/b-L-l.bmp'
 logo = cv.imread(image_path)
 logo = cv.resize(logo, dsize=None, fx=0.1, fy=0.1, interpolation=cv.INTER_LINEAR)
+logo = cv.cvtColor(logo, cv.COLOR_RGB2GRAY)
+# 限制对比度的自适应阈值均衡化
+clahe = cv.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+img2 = clahe.apply(logo)
+cv.imshow("logo", logo)
+cv.imshow("img2", img2)
 # logo_1 = cv.resize(logo, dsize=None, fx=0.5, fy=0.5, interpolation=cv.INTER_LINEAR)
 # min_x, min_y, w, h = cv.selectROI("selectROI", logo)
 # logo = logo[min_y:min_y+h, min_x:min_x+w]
 
-area, binary = remove_bg([120,120,80], 8000, logo)
-print(area)
+# area, binary = remove_bg([120,120,80], 8000, logo)
+# print(area)
 # cv.imshow("binary", binary)
 # logo_c = cv.hconcat([logo, logo_1])
 # cv.imshow("logo_c", logo_c)

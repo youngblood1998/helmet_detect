@@ -237,7 +237,7 @@ class QmyWidget(QWidget):
 
 ##  ==============自定义功能函数========================
    # 输出csv文件
-   def write_csv(self, model, size, color, ok, x, y, angle):
+   def write_csv(self, model, size, color, ok, x, y, angle, dir, port):
 
       # 先查看有无文件夹，没有就创建
       if not os.path.exists("../records"):
@@ -247,7 +247,7 @@ class QmyWidget(QWidget):
       if not os.path.isfile("../records/" + str(datetime.date.today()) + ".csv"):
          with open("../records/" + str(datetime.date.today()) + ".csv", 'w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(["", "型号", "尺寸", "颜色", "时间", "OK", "NG", "总数", "X位置", "Y位置", "角度"])
+            writer.writerow(["", "型号", "尺寸", "颜色", "方向", "输出端口", "时间", "OK", "NG", "总数", "角度", "X位置", "Y位置"])
 
       # 打开csv文件获取相关信息
       with open("../records/" + str(datetime.date.today()) + ".csv", 'r', newline='') as file:
@@ -259,22 +259,23 @@ class QmyWidget(QWidget):
       # 写入csv文件
       with open("../records/" + str(datetime.date.today()) + ".csv", "a", newline='') as file:
          writer = csv.writer(file)
+         angle = round(angle*180/numpy.pi)
          if length == 1:
             if ok:
-               writer.writerow([1, model, size, color, datetime.datetime.now().strftime('%H:%M:%S'),
-                                1, 0, 1, x, y, angle])
+               writer.writerow([1, model, size, color, dir, port, datetime.datetime.now().strftime('%H:%M:%S'),
+                                1, 0, 1, angle, x, y])
             else:
-               writer.writerow([1, "", "", "", datetime.datetime.now().strftime('%H:%M:%S'),
+               writer.writerow([1, "", "", "", "", "", datetime.datetime.now().strftime('%H:%M:%S'),
                                 0, 1, 1, 0, 0, 0])
          else:
             if ok:
-               writer.writerow([int(last_row[0]) + 1, model, size, color,
-                                datetime.datetime.now().strftime('%H:%M:%S'), int(last_row[5]) + 1,
-                                last_row[6], int(last_row[7]) + 1, x, y, angle])
+               writer.writerow([int(last_row[0]) + 1, model, size, color, dir, port,
+                                datetime.datetime.now().strftime('%H:%M:%S'), int(last_row[7]) + 1,
+                                last_row[8], int(last_row[9]) + 1, angle, x, y])
             else:
-               writer.writerow([int(last_row[0]) + 1, "", "", "",
-                                datetime.datetime.now().strftime('%H:%M:%S'), last_row[5],
-                                int(last_row[6]) + 1, int(last_row[7]) + 1, 0, 0, 0])
+               writer.writerow([int(last_row[0]) + 1, "", "", "", "", "",
+                                datetime.datetime.now().strftime('%H:%M:%S'), last_row[7],
+                                int(last_row[8]) + 1, int(last_row[9]) + 1, 0, 0, 0])
 
 
    # 软触发得到一张图，用于创建模板
@@ -500,8 +501,6 @@ class QmyWidget(QWidget):
             s = "前" if dir==0 else "后"
             label.setText("型号："+result["model"]+"；\t尺寸："+result["size"]+"；\t方向："+str(s))
             # self.ui.label_2.setText("型号："+result["model"]+"；尺寸:"+result["size"]+"；方向："+angle)
-            # 写入csv
-            self.write_csv(result["model"], result["size"], result["color"], True, x, y, angle)
             # 传输数据
             if self.mythread:
                string = result["model"]+";"+result["size"]+";"+result["color"]+";"+str(dir)+";"+str(x)+";"+str(y)+";"+str(angle)
@@ -510,6 +509,7 @@ class QmyWidget(QWidget):
             # if self.relay_flag:
             #    self.relay_export_thread.export(result["port"], float(self.settings.value("delay_time")))
                # export_relay(self.relay_dic, result["port"])
+            port = ""
             if (dir == 0 and result["forward"] == 1) or (dir == 1 and result["backward"] == 1):
                if self.relay_flag:
                   # 判断是否多端口同时输出
@@ -519,6 +519,7 @@ class QmyWidget(QWidget):
                               result["port"]):
                            result["port_index"] = result["port_index"] + 1
                         if result["port_index"] < len(result["port"]):
+                           port = str(result["port"][result["port_index"]])
                            text = str(label.text()) + "；\t输出端口：" + str(result["port"][result["port_index"]])
                            label.setText(text)
                            self.relay_export_thread.export(result["port"][result["port_index"]],
@@ -527,9 +528,12 @@ class QmyWidget(QWidget):
                         if result["port_index"] >= len(result["port"]):
                            result["port_index"] = 0
                   else:
+                     port = str(result["port"])
                      text = str(label.text()) + "；\t输出端口：" + str(result["port"])
                      label.setText(text)
                      self.relay_export_thread.export_arr(result["port"], float(self.settings.value("delay_time")))
+            # 写入csv
+            self.write_csv(result["model"], result["size"], result["color"], True, x, y, angle, s, port)
                   # # 是否忽略颜色
                   # if self.ignore_flag:
                   #    if int(result["check"]) == 0:
@@ -566,7 +570,7 @@ class QmyWidget(QWidget):
             label.setStyleSheet('color: red')
             self.ui.label_2.setText("无匹配结果")
             # 写入csv
-            self.write_csv("", "", "", False, 0, 0, 0)
+            self.write_csv("", "", "", False, 0, 0, 0, "", "")
             # 传输数据
             if self.mythread:
                string = ";" + ";" + ";" + str(-1) + ";" + str(0) + ";" + str(0) + ";" + str(0)
