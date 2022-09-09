@@ -42,9 +42,9 @@ class SurfBf:
             img2 = im2
             # img2 = copy.deepcopy(im2)
 
-        # # 限制对比度的自适应阈值均衡化
-        # clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-        # img2 = clahe.apply(img2)
+        # 限制对比度的自适应阈值均衡化
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        img2 = clahe.apply(img2)
         #
         # 初始化SURF特征检测器
         surf = cv2.xfeatures2d.SURF_create()
@@ -189,10 +189,10 @@ class SurfBf:
             area_rectangle_1 = im1_width * im1_height
             area_rectangle_difference = abs(area_rectangle_2 - area_rectangle_1)
             print(area_rectangle_2, area_rectangle_1, area_rectangle_difference)
-            # 面积不对直接跳过
-            if area_rectangle_2 < (1.0/self.area)*area_rectangle_1 or area_rectangle_2 > (self.area)*area_rectangle_1:
-                print("面积不匹配")
-                continue
+            # # 面积不对直接跳过
+            # if area_rectangle_2 < (1.0/self.area)*area_rectangle_1 or area_rectangle_2 > (self.area)*area_rectangle_1:
+            #     print("面积不匹配")
+            #     continue
 
             if area_rectangle_difference < min_area_rectangle_difference:
                 min_area_rectangle_difference = area_rectangle_difference

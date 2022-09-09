@@ -5,10 +5,10 @@ import time
 start = time.time()
 
 MIN_MATCH_COUNT = 10
-fsize = 0.1
+fsize = 0.2
 
-im1 = cv2.imread('../data_test/test/test.bmp', cv2.IMREAD_COLOR)
-im2 = cv2.imread('../data_test/test/right_1.bmp', cv2.IMREAD_COLOR)  # queryImage
+im1 = cv2.imread('../data_test/20220805/M/b.bmp', cv2.IMREAD_COLOR)
+im2 = cv2.imread('../data_test/20220805/M/b-M-r-1.bmp', cv2.IMREAD_COLOR)  # queryImage
 # im1 = cv2.imread('./data_color/templates/o1.bmp', cv2.IMREAD_COLOR)
 # im2 = cv2.imread('./data_color/matches/o1-1.bmp', cv2.IMREAD_COLOR)  # queryImage
 im1 = cv2.resize(im1, dsize=None, fx=fsize, fy=fsize, interpolation=cv2.INTER_LINEAR)
@@ -73,9 +73,9 @@ matches = bf.knnMatch(des1, des2, k=2)
 # store all the good matches as per Lowe's ratio test.
 good = []
 for m, n in matches:
-    if m.distance < 0.7 * n.distance:
+    if m.distance < 0.8 * n.distance:
         good.append(m)
-
+print(len(good))
 if len(good) > MIN_MATCH_COUNT:
     # 分别取出匹配成功的queryImage的所有关键点 src_pts 以及trainImage的所有关键点 dst_pts
     src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)

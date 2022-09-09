@@ -9,8 +9,8 @@ MIN_MATCH_COUNT = 10
 fsize = 0.2
 
 # 读取图片并转换成黑白图
-im1 = cv2.imread('../data_test/template/point.jpg', cv2.IMREAD_COLOR)  # trainImage
-im2 = cv2.imread('../data_test/matchs/point-1.bmp', cv2.IMREAD_COLOR)  # queryImage
+im1 = cv2.imread('../data_test/20220805/M/b.bmp', cv2.IMREAD_COLOR)
+im2 = cv2.imread('../data_test/20220805/M/b-M-r.bmp', cv2.IMREAD_COLOR)  # queryImage
 im1 = cv2.resize(im1, dsize=None, fx=fsize, fy=fsize, interpolation=cv2.INTER_LINEAR)
 im2 = cv2.resize(im2, dsize=None, fx=fsize, fy=fsize, interpolation=cv2.INTER_LINEAR)
 # 直方图归一化，应对白色的头盔(黑色头盔效果不行)
