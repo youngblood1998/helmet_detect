@@ -1057,25 +1057,39 @@
 #--------------------------------------------------------
 from detect_lib.remove_background import remove_bg
 import cv2 as cv
+import numpy as np
+import math
 
 image_path = './data_test/20220805/L/b-L-l.bmp'
 logo = cv.imread(image_path)
 logo = cv.resize(logo, dsize=None, fx=0.1, fy=0.1, interpolation=cv.INTER_LINEAR)
-logo = cv.cvtColor(logo, cv.COLOR_RGB2GRAY)
-# 限制对比度的自适应阈值均衡化
-clahe = cv.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-img2 = clahe.apply(logo)
-cv.imshow("logo", logo)
-cv.imshow("img2", img2)
+# logo = cv.cvtColor(logo, cv.COLOR_RGB2GRAY)
+# # 限制对比度的自适应阈值均衡化
+# clahe = cv.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+# img2 = clahe.apply(logo)
+# cv.imshow("logo", logo)
+# cv.imshow("img2", img2)
 # logo_1 = cv.resize(logo, dsize=None, fx=0.5, fy=0.5, interpolation=cv.INTER_LINEAR)
 # min_x, min_y, w, h = cv.selectROI("selectROI", logo)
 # logo = logo[min_y:min_y+h, min_x:min_x+w]
 
-# area, binary = remove_bg([120,120,80], 8000, logo)
-# print(area)
-# cv.imshow("binary", binary)
+area, binary = remove_bg([120,120,80], 8000, logo)
+print(area)
+
+img, contours, hierarchy = cv.findContours(binary, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)#contours为轮廓集，可以计算轮廓的长度、面积等
+for cnt in contours:
+    rect = cv.minAreaRect(cnt)
+    box = cv.boxPoints(rect)
+    box = np.int0(box)
+    print(box)
+    point0 = box[0]
+    point1 = box[1] if (point0[0]-box[1][0])**2+(point0[1]-box[1][1])**2>(point0[0]-box[3][0])**2+(point0[1]-box[3][1])**2 else box[3]
+    print(point0, point1)
+    print(math.atan((point0[1]-point1[1])/(point0[0]-point1[0])))
+    cv.drawContours(binary, [box], 0, (255, 255, 255), 5)
 # logo_c = cv.hconcat([logo, logo_1])
 # cv.imshow("logo_c", logo_c)
+cv.imshow("binary", binary)
 cv.waitKey(0)
 cv.destroyAllWindows()
 #------------------------------------------

@@ -1,7 +1,6 @@
 # import numpy
 import copy
 import time
-import math
 import numpy as np
 import cv2
 from detect_lib.calculate_area import CalArea
@@ -158,29 +157,6 @@ class SurfBf:
         # 计算0.1倍时的面积
         im2_1 = cv2.resize(im_2, dsize=None, fx=0.05, fy=0.05, interpolation=cv2.INTER_LINEAR)
         area2, binary = remove_bg(self.bg_color, self.bg_thresh, im2_1)
-        # 求最小外接矩形
-        img, contours, hierarchy = cv2.findContours(binary, cv2.RETR_TREE,
-                                                   cv2.CHAIN_APPROX_SIMPLE)  # contours为轮廓集，可以计算轮廓的长度、面积等
-        max_length = 0
-        angle_best = 0
-        for cnt in contours:
-            rect = cv2.minAreaRect(cnt)
-            box = cv2.boxPoints(rect)
-            box = np.int0(box)
-            point0 = box[0]
-            point1 = box[1] if (point0[0] - box[1][0]) ** 2 + (point0[1] - box[1][1]) ** 2 > (
-                      point0[0] - box[3][0]) ** 2 + (point0[1] - box[3][1]) ** 2 else box[3]
-            if ((point0[1] - point1[1])**2+(point0[0] - point1[0])**2)**0.5 > max_length:
-                max_length = ((point0[1] - point1[1])**2+(point0[0] - point1[0])**2)**0.5
-                angle_best = math.atan((point0[1] - point1[1]) / (point0[0] - point1[0]))
-            cv2.drawContours(binary, [box], 0, (255, 255, 255), 5)
-        # 旋转到与模板同一角度再检测
-        rows, cols = im2.shape[:2]
-        center = (cols / 2, rows / 2)
-        angle_ = int(angle_best*180/np.pi)
-        scale = 1
-        M = cv2.getRotationMatrix2D(center, angle_, scale)
-        im2 = cv2.warpAffine(src=im2, M=M, dsize=None, borderValue=(0, 0, 0))
         # print("耗时")
         # print(time.time()-start)
         cal = CalArea()
@@ -255,7 +231,7 @@ class SurfBf:
         # 把匹配的框画进去，并表示出来
         im2 = cv2.polylines(im2, [np.int32(draw_point)], True, (255, 0, 0), 3, cv2.LINE_AA)
         binary = cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB)
-        binary = cv2.resize(binary, dsize=None, fx=self.resize_times*6, fy=self.resize_times*6,
+        binary = cv2.resize(binary, dsize=None, fx=self.resize_times*3, fy=self.resize_times*3,
                             interpolation=cv2.INTER_LINEAR)
         im2 = concate_image(im2, binary)
         # im2 = cv2.line(im2, point0, point1, (0, 0, 255), 3)
@@ -267,5 +243,4 @@ class SurfBf:
         direction = 0 if (angles[2] < np.pi/2 and angles[2] > -np.pi/2) else 1
         x, y = int((draw_point[0][0][1]+draw_point[1][0][1]+draw_point[2][0][1]+draw_point[3][0][1])/4), \
                int((draw_point[0][0][0]+draw_point[1][0][0]+draw_point[2][0][0]+draw_point[3][0][0])/4)
-        angle_ret = angle_best if direction == 0 else angle_best-np.pi if angle_best>0 else angle_best+np.pi
-        return best_temp, direction, im2, angle_ret, x, y
+        return best_temp, direction, im2, angles[2], x, y
