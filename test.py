@@ -1060,7 +1060,7 @@ import cv2 as cv
 import numpy as np
 import math
 
-image_path = './data_test/20220805/L/b-L-l.bmp'
+image_path = './data_test/20220805/M/b-M-r.bmp'
 logo = cv.imread(image_path)
 logo = cv.resize(logo, dsize=None, fx=0.1, fy=0.1, interpolation=cv.INTER_LINEAR)
 # logo = cv.cvtColor(logo, cv.COLOR_RGB2GRAY)
@@ -1075,6 +1075,7 @@ logo = cv.resize(logo, dsize=None, fx=0.1, fy=0.1, interpolation=cv.INTER_LINEAR
 
 area, binary = remove_bg([120,120,80], 8000, logo)
 print(area)
+cv.imshow("logo", logo)
 
 img, contours, hierarchy = cv.findContours(binary, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)#contours为轮廓集，可以计算轮廓的长度、面积等
 for cnt in contours:

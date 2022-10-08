@@ -237,11 +237,11 @@ class QmyWidget(QWidget):
 
 ##  ==============自定义功能函数========================
    # 输出csv文件
-   def write_csv(self, model, size, color, ok, x, y, angle, dir, port):
+   def write_csv(self, model, size, color, ok, x, y, angle, dir, port, imageDraw):
 
       # 先查看有无文件夹，没有就创建
-      if not os.path.exists("../records"):
-         os.mkdir("../records")
+      if not os.path.exists("../records/" + str(datetime.date.today())):
+         os.mkdir("../records/" + str(datetime.date.today()))
 
       # 根据日期创建csv文件并写入表头
       if not os.path.isfile("../records/" + str(datetime.date.today()) + ".csv"):
@@ -276,6 +276,10 @@ class QmyWidget(QWidget):
                writer.writerow([int(last_row[0]) + 1, "", "", "", "", "",
                                 datetime.datetime.now().strftime('%H:%M:%S'), last_row[7],
                                 int(last_row[8]) + 1, int(last_row[9]) + 1, 0, 0, 0])
+      # 保存图片
+      image = cv2.resize(imageDraw, dsize=(134, 73), interpolation=cv2.INTER_LINEAR)
+      image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+      cv2.imwrite("../records/" + str(datetime.date.today()) + "/" + str(int(last_row[0]) + 1) + ".png", image)
 
 
    # 软触发得到一张图，用于创建模板
@@ -533,7 +537,7 @@ class QmyWidget(QWidget):
                      label.setText(text)
                      self.relay_export_thread.export_arr(result["port"], float(self.settings.value("delay_time")))
             # 写入csv
-            self.write_csv(result["model"], result["size"], result["color"], True, x, y, angle, s, port)
+            self.write_csv(result["model"], result["size"], result["color"], True, x, y, angle, s, port, imageDraw)
                   # # 是否忽略颜色
                   # if self.ignore_flag:
                   #    if int(result["check"]) == 0:
@@ -566,19 +570,23 @@ class QmyWidget(QWidget):
                   #    else:
                   #       self.relay_export_thread.export_arr(result["port"], float(self.settings.value("delay_time")))
          else:
-            label = self.ui.label_2
-            label.setStyleSheet('color: red')
-            self.ui.label_2.setText("无匹配结果")
-            # 写入csv
-            self.write_csv("", "", "", False, 0, 0, 0, "", "")
-            # 传输数据
-            if self.mythread:
-               string = ";" + ";" + ";" + str(-1) + ";" + str(0) + ";" + str(0) + ";" + str(0)
-               self.mythread.send(string)
-            # # 继电器输出
-            # if self.relay_flag:
-            #    self.relay_export_thread.export(self.num, float(self.settings.value("delay_time")))
-               # export_relay(self.relay_dic, self.num)
+            if dir == -1:
+               self.ui.labInput.clear()
+               self.interval_flag = False
+            else:
+               label = self.ui.label_2
+               label.setStyleSheet('color: red')
+               self.ui.label_2.setText("无匹配结果")
+               # 写入csv
+               self.write_csv("", "", "", False, 0, 0, 0, "", "", cvtImage)
+               # 传输数据
+               if self.mythread:
+                  string = ";" + ";" + ";" + str(-1) + ";" + str(0) + ";" + str(0) + ";" + str(0)
+                  self.mythread.send(string)
+               # # 继电器输出
+               # if self.relay_flag:
+               #    self.relay_export_thread.export(self.num, float(self.settings.value("delay_time")))
+                  # export_relay(self.relay_dic, self.num)
          gc.collect()
 
 

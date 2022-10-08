@@ -237,11 +237,11 @@ class QmyWidget(QWidget):
 
 ##  ==============自定义功能函数========================
    # 输出csv文件
-   def write_csv(self, model, size, color, ok, x, y, angle):
+   def write_csv(self, model, size, color, ok, x, y, angle, imageDraw):
 
       # 先查看有无文件夹，没有就创建
-      if not os.path.exists("../records"):
-         os.mkdir("../records")
+      if not os.path.exists("../records/" + str(datetime.date.today())):
+         os.mkdir("../records/" + str(datetime.date.today()))
 
       # 根据日期创建csv文件并写入表头
       if not os.path.isfile("../records/" + str(datetime.date.today()) + ".csv"):
@@ -275,6 +275,10 @@ class QmyWidget(QWidget):
                writer.writerow([int(last_row[0]) + 1, "", "", "",
                                 datetime.datetime.now().strftime('%H:%M:%S'), last_row[5],
                                 int(last_row[6]) + 1, int(last_row[7]) + 1, 0, 0, 0])
+      # 保存图片
+      image = cv2.resize(imageDraw, dsize=(134, 73), interpolation=cv2.INTER_LINEAR)
+      image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+      cv2.imwrite("../records/" + str(datetime.date.today()) + "/" + str(int(last_row[0]) + 1) + ".png", image)
 
 
    # 软触发得到一张图，用于创建模板
@@ -501,7 +505,7 @@ class QmyWidget(QWidget):
             label.setText("型号："+result["model"]+"；\t尺寸："+result["size"]+"；\t方向："+str(s))
             # self.ui.label_2.setText("型号："+result["model"]+"；尺寸:"+result["size"]+"；方向："+angle)
             # 写入csv
-            self.write_csv(result["model"], result["size"], result["color"], True, x, y, angle)
+            self.write_csv(result["model"], result["size"], result["color"], True, x, y, angle, imageDraw)
             # 传输数据
             if self.mythread:
                string = result["model"]+";"+result["size"]+";"+result["color"]+";"+str(dir)+";"+str(x)+";"+str(y)+";"+str(angle)
@@ -566,7 +570,7 @@ class QmyWidget(QWidget):
             label.setStyleSheet('color: red')
             self.ui.label_2.setText("无匹配结果")
             # 写入csv
-            self.write_csv("", "", "", False, 0, 0, 0)
+            self.write_csv("", "", "", False, 0, 0, 0, imageDraw)
             # 传输数据
             if self.mythread:
                string = ";" + ";" + ";" + str(-1) + ";" + str(0) + ";" + str(0) + ";" + str(0)
@@ -1096,8 +1100,9 @@ class QmyWidget(QWidget):
    def on_btnDetectCamera_clicked(self):
       # image_arr = ["w-L-l.bmp", "w-L-r.bmp", "b-L-l.bmp", "b-L-r.bmp"]
       # image_arr = ["w-M-l.bmp", "w-M-r.bmp", "b-M-l.bmp", "b-M-r.bmp"]
-      image_arr = ["b-M-l-1.bmp", "b-M-r-1.bmp", "b-M-l.bmp", "b-M-r.bmp"]
+      # image_arr = ["b-M-l-1.bmp", "b-M-r-1.bmp", "b-M-l.bmp", "b-M-r.bmp"]
       # image_arr = ["b-M-l.bmp"]
+      image_arr = ["w-M-l-1.bmp", "w-M-r-1.bmp", "w-M-l.bmp", "w-M-r.bmp"]
       for image_name in image_arr:
          start = time.time()
          # cvImage = cv2.imread("./data_test/20220805/L/" + image_name)
@@ -1248,7 +1253,7 @@ class QmyWidget(QWidget):
             label.setText("型号：" + result["model"] + "；\t尺寸:" + result["size"] + "；\t方向：" + str(s))
             # self.ui.label_2.setText("型号："+result["model"]+"；尺寸:"+result["size"]+"；方向："+angle)
             # 写入csv
-            self.write_csv(result["model"], result["size"], result["color"], True, x, y, angle)
+            self.write_csv(result["model"], result["size"], result["color"], True, x, y, angle, imageDraw)
             # 传输数据
             if self.mythread:
                string = result["model"] + ";" + result["size"] + ";" + result["color"] + ";" + str(dir) + ";" + str(
@@ -1258,19 +1263,22 @@ class QmyWidget(QWidget):
             if self.relay_flag:
                export_relay(self.relay_dic, result["port"])
          else:
-            label = self.ui.label_2
-            label.setStyleSheet('color: red')
-            self.ui.label_2.setText("无匹配结果")
-            # 写入csv
-            self.write_csv("", "", "", False, 0, 0, 0)
-            # 传输数据
-            if self.mythread:
-               string = ";" + ";" + ";" + str(-1) + ";" + str(0) + ";" + str(0) + ";" + str(0)
-               self.mythread.send(string)
-            # 继电器输出
-            if self.relay_flag:
-               export_relay(self.relay_dic, self.num)
-         # print(time.time()-start)
+            if dir == -1:
+               self.ui.labInput.clear()
+            else:
+               label = self.ui.label_2
+               label.setStyleSheet('color: red')
+               self.ui.label_2.setText("无匹配结果")
+               # 写入csv
+               self.write_csv("", "", "", False, 0, 0, 0, cvtImage)
+               # 传输数据
+               if self.mythread:
+                  string = ";" + ";" + ";" + str(-1) + ";" + str(0) + ";" + str(0) + ";" + str(0)
+                  self.mythread.send(string)
+               # 继电器输出
+               if self.relay_flag:
+                  export_relay(self.relay_dic, self.num)
+            # print(time.time()-start)
       gc.collect()
 
 

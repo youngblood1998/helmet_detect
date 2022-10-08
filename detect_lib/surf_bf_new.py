@@ -158,6 +158,10 @@ class SurfBf:
         # 计算0.1倍时的面积
         im2_1 = cv2.resize(im_2, dsize=None, fx=0.05, fy=0.05, interpolation=cv2.INTER_LINEAR)
         area2, binary = remove_bg(self.bg_color, self.bg_thresh, im2_1)
+        print("面积比：")
+        print(float(area2) / (im2_1.shape[0] * im2_1.shape[1]))
+        if float(area2)/(im2_1.shape[0]*im2_1.shape[1]) < 0.15:
+            return None, -1, [], 0, 0, 0
         # 求最小外接矩形
         img, contours, hierarchy = cv2.findContours(binary, cv2.RETR_TREE,
                                                    cv2.CHAIN_APPROX_SIMPLE)  # contours为轮廓集，可以计算轮廓的长度、面积等
