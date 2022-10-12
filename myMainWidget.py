@@ -961,7 +961,7 @@ class QmyWidget(QWidget):
          return -1
 
       # 设置外触发
-      nRet = setLineTriggerConf(self.camera, int(self.settings.value("trigger_delay")))
+      nRet = setLineTriggerConf(self.camera, int(self.settings.value("trigger_delay"))*1000)
       if (nRet != 0):
          print("set LineTriggerConf fail!")
          return -1

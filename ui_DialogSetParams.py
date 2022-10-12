@@ -69,7 +69,7 @@ class Ui_Dialog(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.spinBoxTriggerDelay.sizePolicy().hasHeightForWidth())
         self.spinBoxTriggerDelay.setSizePolicy(sizePolicy)
-        self.spinBoxTriggerDelay.setMaximum(1000000)
+        self.spinBoxTriggerDelay.setMaximum(1000)
         self.spinBoxTriggerDelay.setObjectName("spinBoxTriggerDelay")
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.spinBoxTriggerDelay)
         self.label_2 = QtWidgets.QLabel(self.frame_2)
@@ -442,8 +442,8 @@ class Ui_Dialog(object):
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
-        self.labExposureTime.setText(_translate("Dialog", "曝光时间(0~10000000μs)"))
-        self.labTriggerDelay.setText(_translate("Dialog", "延迟时间(μs)"))
+        self.labExposureTime.setText(_translate("Dialog", "曝光时间(0-10000000μs)"))
+        self.labTriggerDelay.setText(_translate("Dialog", "延迟时间(0-1000ms)"))
         self.label_2.setText(_translate("Dialog", "触发器触发间隔时间(s)"))
         self.label.setText(_translate("Dialog", "继电器输出时间(s)"))
         self.labMinMatchCount.setText(_translate("Dialog", "最小匹配数"))

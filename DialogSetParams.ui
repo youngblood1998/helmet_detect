@@ -53,7 +53,7 @@
          </font>
         </property>
         <property name="text">
-         <string>曝光时间(0~10000000μs)</string>
+         <string>曝光时间(0-10000000μs)</string>
         </property>
         <property name="textFormat">
          <enum>Qt::AutoText</enum>
@@ -91,7 +91,7 @@
          </font>
         </property>
         <property name="text">
-         <string>延迟时间(μs)</string>
+         <string>延迟时间(0-1000ms)</string>
         </property>
         <property name="textFormat">
          <enum>Qt::AutoText</enum>
@@ -110,7 +110,7 @@
          </sizepolicy>
         </property>
         <property name="maximum">
-         <number>1000000</number>
+         <number>1000</number>
         </property>
        </widget>
       </item>
