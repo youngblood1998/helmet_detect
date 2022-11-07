@@ -150,6 +150,7 @@ class SurfBf:
         best_match = None
         draw_point = []
         best_temp = None
+        best_area1 = 0
         angles = []
         # 读取被匹配的图片
         # print(im2.shape)
@@ -157,11 +158,13 @@ class SurfBf:
         im2 = cv2.resize(im_2, dsize=None, fx=self.resize_times, fy=self.resize_times, interpolation=cv2.INTER_LINEAR)
         # 计算0.1倍时的面积
         im2_1 = cv2.resize(im_2, dsize=None, fx=0.05, fy=0.05, interpolation=cv2.INTER_LINEAR)
-        area2, binary = remove_bg(self.bg_color, self.bg_thresh, im2_1)
+        w = im2_1.shape[1]
+        im2_2 = im2_1[:, int(w / 10):int(w * 5 / 6), :]
+        area2, binary = remove_bg(self.bg_color, self.bg_thresh, im2_2)
         print("面积比：")
         print(float(area2) / (im2_1.shape[0] * im2_1.shape[1]))
         if float(area2)/(im2_1.shape[0]*im2_1.shape[1]) < 0.15:
-            return None, -1, [], 0, 0, 0
+            return None, -1, [], 0, 0, 0, 0, 0
         # 求最小外接矩形
         img, contours, hierarchy = cv2.findContours(binary, cv2.RETR_TREE,
                                                    cv2.CHAIN_APPROX_SIMPLE)  # contours为轮廓集，可以计算轮廓的长度、面积等
@@ -184,7 +187,7 @@ class SurfBf:
         angle_ = int(angle_best*180/np.pi)
         scale = 1
         M = cv2.getRotationMatrix2D(center, angle_, scale)
-        im2 = cv2.warpAffine(src=im2, M=M, dsize=None, borderValue=(0, 0, 0))
+        im2_ = cv2.warpAffine(src=im2, M=M, dsize=None, borderValue=(0, 0, 0))
         # print("耗时")
         # print(time.time()-start)
         cal = CalArea()
@@ -201,7 +204,7 @@ class SurfBf:
             # im1_width = np.shape(im1)[1]
             # area1 = im1_width * im1_height
             # 匹配点个数、框的四个点、变换矩阵
-            matches, dst, matrix = self.surf_bf(im1, temp["kp"], temp["des"], im2, ignore_flag)
+            matches, dst, matrix = self.surf_bf(im1, temp["kp"], temp["des"], im2_, ignore_flag)
             # print(dst)
             # 匹配点太少的话直接跳过
             if len(dst) == 0:
@@ -241,6 +244,7 @@ class SurfBf:
                         min_area_difference = area_difference
                         best_match = temp_cmp["image"]  # 最好的模板图片
                         best_temp = temp_cmp  # 最好模板
+                        best_area1 = area1
                     print("-"*10)
             # print("耗时")
             # print(time.time()-start)
@@ -255,11 +259,23 @@ class SurfBf:
             #     angles = cal.rotationMatrix_to_eulerAngles(matrix)  # 角度
         if best_match is None:
             print("匹配不到该物体")
-            return None, 0, [], 0, 0, 0
-        # 把匹配的框画进去，并表示出来
-        im2 = cv2.polylines(im2, [np.int32(draw_point)], True, (255, 0, 0), 3, cv2.LINE_AA)
+            return None, 0, [], 0, 0, 0, 0, 0
+        # 把匹配的框画进去，并表示出来（旋转之后画）
+        # im2 = cv2.polylines(im2, [np.int32(draw_point)], True, (255, 0, 0), 3, cv2.LINE_AA)
+        # print(np.int32(draw_point))
+        # binary = cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB)
+        # binary = cv2.resize(binary, dsize=None, fx=self.resize_times*6, fy=self.resize_times*6,
+        #                     interpolation=cv2.INTER_LINEAR)
+        # im2 = concate_image(im2, binary)
+        # 不旋转的画
+        for b in box:
+            b[0] += w/10
+        box.reshape((-1, 1, 2))
+        box = box*self.resize_times/0.05
+        im2 = cv2.polylines(im2, [np.int32(box)], True, (255, 0, 0), 3, cv2.LINE_AA)
+        print(np.int32(box))
         binary = cv2.cvtColor(binary, cv2.COLOR_GRAY2RGB)
-        binary = cv2.resize(binary, dsize=None, fx=self.resize_times*6, fy=self.resize_times*6,
+        binary = cv2.resize(binary, dsize=None, fx=self.resize_times * 6, fy=self.resize_times * 6,
                             interpolation=cv2.INTER_LINEAR)
         im2 = concate_image(im2, binary)
         # im2 = cv2.line(im2, point0, point1, (0, 0, 255), 3)
@@ -272,4 +288,5 @@ class SurfBf:
         x, y = int((draw_point[0][0][1]+draw_point[1][0][1]+draw_point[2][0][1]+draw_point[3][0][1])/4), \
                int((draw_point[0][0][0]+draw_point[1][0][0]+draw_point[2][0][0]+draw_point[3][0][0])/4)
         angle_ret = angle_best if direction == 0 else angle_best-np.pi if angle_best>0 else angle_best+np.pi
-        return best_temp, direction, im2, angle_ret, x, y
+        # print(angle_ret)
+        return best_temp, direction, im2, angle_ret, x, y, area2, best_area1

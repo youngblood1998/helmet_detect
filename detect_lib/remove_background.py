@@ -18,8 +18,7 @@ def FillHole(mask):
    return out
 
 def remove_bg(bg_color, threshold, img):
-   w = img.shape[1]
-   img = img[:, int(w / 10):int(w * 5 / 6), :]
+
    img = cv.blur(img, (7,7))
    # logo = cv.cvtColor(logo, cv.COLOR_BGR2BGRA)  # 将图像转成带透明通道的BGRA格式
    h, w = img.shape[0:2]

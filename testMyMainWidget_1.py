@@ -237,48 +237,60 @@ class QmyWidget(QWidget):
 
 ##  ==============自定义功能函数========================
    # 输出csv文件
-   def write_csv(self, model, size, color, ok, x, y, angle, imageDraw):
+   def write_csv(self, model, size, color, ok, x, y, angle, imageDraw, area2, area1):
+      try:
+         print(angle)
+         angle = angle * 180 // numpy.pi
+         print(angle)
+         # 先查看有无文件夹，没有就创建
+         if not os.path.exists("../records/"):
+            os.mkdir("../records/")
 
-      # 先查看有无文件夹，没有就创建
-      if not os.path.exists("../records/" + str(datetime.date.today())):
-         os.mkdir("../records/" + str(datetime.date.today()))
+         # 先查看有无文件夹，没有就创建
+         if not os.path.exists("../records/" + str(datetime.date.today())):
+            os.mkdir("../records/" + str(datetime.date.today()))
 
-      # 根据日期创建csv文件并写入表头
-      if not os.path.isfile("../records/" + str(datetime.date.today()) + ".csv"):
-         with open("../records/" + str(datetime.date.today()) + ".csv", 'w', newline='') as file:
+         # 根据日期创建csv文件并写入表头
+         if not os.path.isfile("../records/" + str(datetime.date.today()) + ".csv"):
+            with open("../records/" + str(datetime.date.today()) + ".csv", 'w', newline='') as file:
+               writer = csv.writer(file)
+               writer.writerow(["", "型号", "尺寸", "颜色", "时间", "OK", "NG", "总数", "X位置", "Y位置", "角度", "实际面积", "模板面积"])
+
+         # 打开csv文件获取相关信息
+         with open("../records/" + str(datetime.date.today()) + ".csv", 'r', newline='') as file:
+            reader = csv.reader(file)
+            reader_list = list(reader)
+            length = len(reader_list)
+            last_row = reader_list[-1]
+
+         # 写入csv文件
+         with open("../records/" + str(datetime.date.today()) + ".csv", "a", newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(["", "型号", "尺寸", "颜色", "时间", "OK", "NG", "总数", "X位置", "Y位置", "角度"])
-
-      # 打开csv文件获取相关信息
-      with open("../records/" + str(datetime.date.today()) + ".csv", 'r', newline='') as file:
-         reader = csv.reader(file)
-         reader_list = list(reader)
-         length = len(reader_list)
-         last_row = reader_list[-1]
-
-      # 写入csv文件
-      with open("../records/" + str(datetime.date.today()) + ".csv", "a", newline='') as file:
-         writer = csv.writer(file)
-         if length == 1:
-            if ok:
-               writer.writerow([1, model, size, color, datetime.datetime.now().strftime('%H:%M:%S'),
-                                1, 0, 1, x, y, angle])
+            if length == 1:
+               if ok:
+                  writer.writerow([1, model, size, color, datetime.datetime.now().strftime('%H:%M:%S'),
+                                   1, 0, 1, x, y, angle, area2, area1])
+               else:
+                  writer.writerow([1, "", "", "", datetime.datetime.now().strftime('%H:%M:%S'),
+                                   0, 1, 1, 0, 0, 0, 0, 0])
             else:
-               writer.writerow([1, "", "", "", datetime.datetime.now().strftime('%H:%M:%S'),
-                                0, 1, 1, 0, 0, 0])
+               if ok:
+                  writer.writerow([int(last_row[0]) + 1, model, size, color,
+                                   datetime.datetime.now().strftime('%H:%M:%S'), int(last_row[5]) + 1,
+                                   last_row[6], int(last_row[7]) + 1, x, y, angle, area2, area1])
+               else:
+                  writer.writerow([int(last_row[0]) + 1, "", "", "",
+                                   datetime.datetime.now().strftime('%H:%M:%S'), last_row[5],
+                                   int(last_row[6]) + 1, int(last_row[7]) + 1, 0, 0, 0, 0, 0])
+         # 保存图片
+         image = cv2.resize(imageDraw, dsize=(134, 73), interpolation=cv2.INTER_LINEAR)
+         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+         if last_row[0] == '':
+            cv2.imwrite("../records/" + str(datetime.date.today()) + "/" + str(1) + ".png", image)
          else:
-            if ok:
-               writer.writerow([int(last_row[0]) + 1, model, size, color,
-                                datetime.datetime.now().strftime('%H:%M:%S'), int(last_row[5]) + 1,
-                                last_row[6], int(last_row[7]) + 1, x, y, angle])
-            else:
-               writer.writerow([int(last_row[0]) + 1, "", "", "",
-                                datetime.datetime.now().strftime('%H:%M:%S'), last_row[5],
-                                int(last_row[6]) + 1, int(last_row[7]) + 1, 0, 0, 0])
-      # 保存图片
-      image = cv2.resize(imageDraw, dsize=(134, 73), interpolation=cv2.INTER_LINEAR)
-      image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-      cv2.imwrite("../records/" + str(datetime.date.today()) + "/" + str(int(last_row[0]) + 1) + ".png", image)
+            cv2.imwrite("../records/" + str(datetime.date.today()) + "/" + str(int(last_row[0]) + 1) + ".png", image)
+      except Exception as e:
+         QMessageBox.warning(self, "错误", "打开csv文件时系统无法保存数据！")
 
 
    # 软触发得到一张图，用于创建模板
@@ -435,7 +447,7 @@ class QmyWidget(QWidget):
          #
          # # 返回结果，模板、方向、画出匹配框的图像
          # result, dir, imageDraw, angle, x, y = surf.match(detect_temp_arr, cvtImage)
-         result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage, self.ignore_flag)
+         result, dir, imageDraw, angle, x, y, area2, area1 = surf.match(self.temp_arr, cvtImage, self.ignore_flag)
 
          # # 左右反转再检测,似乎有一点效果
          # if (angle > 0.2 and angle < numpy.pi/2-0.2) or (angle > -numpy.pi+0.2 and angle < -numpy.pi/2-0.2):
@@ -1101,8 +1113,8 @@ class QmyWidget(QWidget):
       # image_arr = ["w-L-l.bmp", "w-L-r.bmp", "b-L-l.bmp", "b-L-r.bmp"]
       # image_arr = ["w-M-l.bmp", "w-M-r.bmp", "b-M-l.bmp", "b-M-r.bmp"]
       # image_arr = ["b-M-l-1.bmp", "b-M-r-1.bmp", "b-M-l.bmp", "b-M-r.bmp"]
-      # image_arr = ["b-M-l.bmp"]
-      image_arr = ["w-M-l-1.bmp", "w-M-r-1.bmp", "w-M-l.bmp", "w-M-r.bmp"]
+      image_arr = ["w-M-l.bmp"]
+      # image_arr = ["w-M-l-1.bmp", "w-M-r-1.bmp", "w-M-l.bmp", "w-M-r.bmp"]
       for image_name in image_arr:
          start = time.time()
          # cvImage = cv2.imread("./data_test/20220805/L/" + image_name)
@@ -1181,7 +1193,7 @@ class QmyWidget(QWidget):
          #
          # # 返回结果，模板、方向、画出匹配框的图像
          # result, dir, imageDraw, angle, x, y = surf.match(detect_temp_arr, cvtImage)
-         result, dir, imageDraw, angle, x, y = surf.match(self.temp_arr, cvtImage, False)
+         result, dir, imageDraw, angle, x, y, area2, area1 = surf.match(self.temp_arr, cvtImage, False)
 
          # # 左右反转再检测
          # if (angle > 0.2 and angle < numpy.pi / 2 - 0.2) or (angle > -numpy.pi + 0.2 and angle < -numpy.pi / 2 - 0.2):
@@ -1250,10 +1262,10 @@ class QmyWidget(QWidget):
             label = self.ui.label_2
             label.setStyleSheet('color: green')
             s = "前" if dir == 0 else "后"
-            label.setText("型号：" + result["model"] + "；\t尺寸:" + result["size"] + "；\t方向：" + str(s))
+            label.setText("型号：" + result["model"] + "；\t尺寸:" + result["size"] + "；\t方向：" + str(s)+"；\t颜色："+result["color"])
             # self.ui.label_2.setText("型号："+result["model"]+"；尺寸:"+result["size"]+"；方向："+angle)
             # 写入csv
-            self.write_csv(result["model"], result["size"], result["color"], True, x, y, angle, imageDraw)
+            self.write_csv(result["model"], result["size"], result["color"], True, x, y, angle, imageDraw, area2, area1)
             # 传输数据
             if self.mythread:
                string = result["model"] + ";" + result["size"] + ";" + result["color"] + ";" + str(dir) + ";" + str(
@@ -1270,7 +1282,7 @@ class QmyWidget(QWidget):
                label.setStyleSheet('color: red')
                self.ui.label_2.setText("无匹配结果")
                # 写入csv
-               self.write_csv("", "", "", False, 0, 0, 0, cvtImage)
+               self.write_csv("", "", "", False, 0, 0, 0, cvtImage, 0, 0)
                # 传输数据
                if self.mythread:
                   string = ";" + ";" + ";" + str(-1) + ";" + str(0) + ";" + str(0) + ";" + str(0)
