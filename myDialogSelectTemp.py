@@ -92,7 +92,8 @@ class QmyDialogSelectTemp(QDialog):
    def __openTable(self):
       self.tableModel = QSqlTableModel(self, self.db)
       self.tableModel.setTable("helmet")
-      self.tableModel.setSort(self.tableModel.fieldIndex("rowid"), Qt.AscendingOrder)
+      # self.tableModel.setSort(self.tableModel.fieldIndex("rowid"), Qt.AscendingOrder)
+      self.tableModel.setSort(self.tableModel.fieldIndex("model"), Qt.AscendingOrder)
       self.tableModel.setEditStrategy(QSqlTableModel.OnManualSubmit)
       if self.tableModel.select() == False:
          QMessageBox.critical(self, "出错信息", "打开数据表错误，错误信息\n" + self.tableModel.lastError().text())
